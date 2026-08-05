@@ -24,11 +24,12 @@ public class SmsService {
         Twilio.init(sid, token);
     }
 
-    public void sendOtp(String mobileNumber, String otp) {
+    public void sendOtps(String mobileNumber, String otp) {
+        String formattedNumber = mobileNumber.startsWith("+") ? mobileNumber : "+91" + mobileNumber;
 
         Message.creator(
-                new PhoneNumber(mobileNumber),     // Receiver
-                new PhoneNumber(phoneNumber),      // Twilio Number
+                new PhoneNumber(formattedNumber),
+                new PhoneNumber(phoneNumber),
                 "Your R-Petals OTP is: " + otp + ". Valid for 5 minutes."
         ).create();
     }

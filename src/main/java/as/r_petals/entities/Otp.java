@@ -1,5 +1,6 @@
 package as.r_petals.entities;
 
+import as.r_petals.enums.OtpType;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -11,7 +12,11 @@ public class Otp {
     @Id
     private String id;
 
-    private String mobileNumber;
+    // Mobile Number ya Email
+    private String identifier;
+
+    // MOBILE | EMAIL
+    private OtpType type;
 
     private String otp;
 
@@ -28,14 +33,6 @@ public class Otp {
 
     public void setId(String id) {
         this.id = id;
-    }
-
-    public String getMobileNumber() {
-        return mobileNumber;
-    }
-
-    public void setMobileNumber(String mobileNumber) {
-        this.mobileNumber = mobileNumber;
     }
 
     public String getOtp() {
@@ -60,5 +57,19 @@ public class Otp {
 
     public void setExpiryTime(LocalDateTime expiryTime) {
         this.expiryTime = expiryTime;
+    }
+
+    public String getIdentifier() { return identifier; }
+
+    public void setIdentifier(String identifier) {
+        this.identifier = identifier;
+    }
+
+    public OtpType getType() {
+        return type;
+    }
+
+    public void setType(OtpType type) {
+        this.type = type;
     }
 }

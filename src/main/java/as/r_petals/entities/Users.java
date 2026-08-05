@@ -2,6 +2,7 @@ package as.r_petals.entities;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
@@ -16,6 +17,8 @@ public class Users {
 
     private String fullName;
 
+    private String email;
+
     @Indexed(unique = true)
     private String mobileNumber;
 
@@ -27,14 +30,24 @@ public class Users {
     // Admin user ko block/unblock kar sake
     private boolean active = true;
 
-    // Profile complete hui ya nahi
-    private boolean profileCompleted = false;
-
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
 
+    @DBRef
+    private Shops shop;
+
     public Users() {
+    }
+
+    //    getter & setter...
+
+    public Shops getShop() {
+        return shop;
+    }
+
+    public void setShop(Shops shop) {
+        this.shop = shop;
     }
 
     public String getId() {
@@ -85,14 +98,6 @@ public class Users {
         this.active = active;
     }
 
-    public boolean isProfileCompleted() {
-        return profileCompleted;
-    }
-
-    public void setProfileCompleted(boolean profileCompleted) {
-        this.profileCompleted = profileCompleted;
-    }
-
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -107,5 +112,13 @@ public class Users {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 }

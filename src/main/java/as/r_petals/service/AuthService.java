@@ -1,6 +1,7 @@
 package as.r_petals.service;
 
 import as.r_petals.entities.Users;
+import as.r_petals.enums.OtpType;
 import as.r_petals.enums.Role;
 import as.r_petals.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,10 +29,11 @@ public class AuthService {
     // Send OTP
     public Map<String, String> sendOtp(String mobileNumber) {
 
-        String otp = otpService.generateOtp(mobileNumber);
+        String otp = otpService.generateOtp(mobileNumber,
+                OtpType.MOBILE);
 
         //send sms on mobile number
-        smsService.sendOtp(mobileNumber, otp);
+//        smsService.sendOtps(mobileNumber, otp);
 
         Map<String, String> response = new HashMap<>();
 
@@ -47,7 +49,7 @@ public class AuthService {
 
         Map<String, Object> response = new HashMap<>();
 
-        boolean verified = otpService.verifyOtp(mobileNumber, otp);
+        boolean verified = otpService.verifyOtp(mobileNumber, otp, OtpType.MOBILE);
 
         if (!verified) {
 

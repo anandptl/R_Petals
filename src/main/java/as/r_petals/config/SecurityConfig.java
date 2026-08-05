@@ -23,7 +23,6 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-
                 .csrf(csrf -> csrf.disable())
 
                 .sessionManagement(session ->
@@ -35,11 +34,13 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/",
                                 "/api",
-                                "/auth/send-otp",
-                                "/auth/verify-otp"
+                                "/auth/**",
+                                "/shop/**",
+                                "/users/**",
+                                "/address/**"
                         ).permitAll()
 
-                        // Secure APIs
+                        // All other APIs require JWT
                         .anyRequest().authenticated()
                 )
 
@@ -56,7 +57,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    AuthenticationManager authenticationManager(
+    public AuthenticationManager authenticationManager(
             AuthenticationConfiguration configuration)
             throws Exception {
 

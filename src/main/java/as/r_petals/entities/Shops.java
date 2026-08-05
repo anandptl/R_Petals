@@ -39,12 +39,6 @@ public class Shops {
 
     private String longitude;
 
-    // Contact
-    @Indexed(unique = true)
-    private String mobileNumber;
-
-    private String email;
-
     // Shop Image / Logo
     private String shopImage;
 
@@ -52,7 +46,7 @@ public class Shops {
     // PENDING | APPROVED | REJECTED
     private ShopStatus status = ShopStatus.PENDING;
 
-    private boolean active = true;
+    private boolean active = false;
 
     private LocalDateTime createdAt;
 
@@ -61,9 +55,7 @@ public class Shops {
     public Shops() {
     }
 
-    // ===========================
     // Getters & Setters
-    // ===========================
 
     public String getId() {
         return id;
@@ -151,22 +143,6 @@ public class Shops {
 
     public void setLongitude(String longitude) {
         this.longitude = longitude;
-    }
-
-    public String getMobileNumber() {
-        return mobileNumber;
-    }
-
-    public void setMobileNumber(String mobileNumber) {
-        this.mobileNumber = mobileNumber;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
     }
 
     public String getShopImage() {
