@@ -24,6 +24,13 @@ public class Otp {
 
     private LocalDateTime expiryTime;
 
+    // Security fields
+    private int attempts;
+
+    private int requestCount;
+
+    private LocalDateTime windowStart;
+
     public Otp() {
     }
 
@@ -71,5 +78,29 @@ public class Otp {
 
     public void setType(OtpType type) {
         this.type = type;
+    }
+
+    public int getAttempts() {
+        return attempts;
+    }
+
+    public void setAttempts(int attempts) {
+        this.attempts = attempts;
+    }
+
+    public int getRequestCount() {
+        return requestCount;
+    }
+
+    public void setRequestCount(int requestCount) {
+        this.requestCount = requestCount;
+    }
+
+    public LocalDateTime getWindowStart() {
+        return windowStart;
+    }
+
+    public void setWindowStart(LocalDateTime windowStart) {
+        this.windowStart = windowStart;
     }
 }

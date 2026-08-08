@@ -3,6 +3,7 @@ package as.r_petals.service;
 import as.r_petals.entities.Users;
 import as.r_petals.enums.OtpType;
 import as.r_petals.enums.Role;
+import as.r_petals.exception.ResourceNotFoundException;
 import as.r_petals.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -62,13 +63,17 @@ public class UserService {
 
         Map<String, Object> response = new HashMap<>();
 
-        Users user = userRepository.findById(userId).orElse(null);
+        Users user = userRepository.findById(userId).orElseThrow(() ->
+                new ResourceNotFoundException(
+                        "User not found "
+                )
+        );
 
-        if (user == null) {
-            response.put("success", false);
-            response.put("message", "User not found");
-            return response;
-        }
+//        if (user == null) {
+//            response.put("success", false);
+//            response.put("message", "User not found");
+//            return response;
+//        }
 
         user.setEmail(email);
         user.setUpdatedAt(LocalDateTime.now());
@@ -92,11 +97,7 @@ public class UserService {
 
         Map<String, Object> response = new HashMap<>();
 
-        boolean verified = otpService.verifyOtp(
-                email,
-                otp,
-                OtpType.EMAIL
-        );
+        boolean verified = otpService.verifyOtp(email, otp, OtpType.EMAIL );
 
         if (!verified) {
 

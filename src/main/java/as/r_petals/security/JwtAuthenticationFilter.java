@@ -1,7 +1,6 @@
 package as.r_petals.security;
 
 import as.r_petals.service.CustomUserDetailsService;
-import as.r_petals.service.UserService;
 import as.r_petals.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -24,56 +23,67 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private JwtUtil jwtUtil;
 
     @Autowired
-    private CustomUserDetailsService UserDetailsService;
+    private CustomUserDetailsService userDetailsService;
 
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain)
             throws ServletException, IOException {
+
 
         String header = request.getHeader("Authorization");
 
         String token = null;
         String mobileNumber = null;
 
-        // Extract JWT Token
-        if (header != null && header.startsWith("Bearer ")) {
+        // Extract JWT
 
+        if (header != null && header.startsWith("Bearer ")) {
             token = header.substring(7);
 
             try {
-                mobileNumber = jwtUtil.extractMobileNumber(token);
+
+                mobileNumber =
+                        jwtUtil.extractMobileNumber(token);
+
             } catch (Exception e) {
-                System.out.println("Invalid JWT : " + e.getMessage());
+
+                System.out.println(
+                        "Invalid JWT: " + e.getMessage()
+                );
             }
         }
 
         // Authenticate User
+
         if (mobileNumber != null &&
                 SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            UserDetails userDetails = UserDetailsService.loadUserByUsername(mobileNumber);
+            try {
 
-            if (jwtUtil.validateToken(token)) {
+                // First validate token
+                if (jwtUtil.validateToken(token)) {
 
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities()
-                        );
+                    UserDetails userDetails =userDetailsService.loadUserByUsername(mobileNumber);
 
-                authentication.setDetails(
-                        new WebAuthenticationDetailsSource()
-                                .buildDetails(request)
-                );
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            userDetails,null,userDetails.getAuthorities() );
 
-                SecurityContextHolder.getContext()
-                        .setAuthentication(authentication);
+                    authentication.setDetails( new WebAuthenticationDetailsSource() .buildDetails(request));
+
+                    SecurityContextHolder .getContext() .setAuthentication(
+                                    authentication );
+                }
+
+            } catch (Exception e) {
+
+                System.out.println( "Authentication failed: " + e.getMessage()  );
             }
         }
+
 
         filterChain.doFilter(request, response);
     }

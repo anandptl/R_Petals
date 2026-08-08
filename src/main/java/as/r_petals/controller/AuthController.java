@@ -16,6 +16,14 @@ public class AuthController {
     @PostMapping("/send-otp")
     public Map<String, String> sendOtp(@RequestParam String mobileNumber) {
 
+        if (mobileNumber == null || !mobileNumber.matches("^[6-9]\\d{9}$")) {
+
+            return Map.of(
+                    "success", "false",
+                    "message",
+                    "Invalid mobile number"
+            );
+        }
         return authService.sendOtp(mobileNumber);
     }
 

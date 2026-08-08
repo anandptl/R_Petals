@@ -23,32 +23,65 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
+                // CSRF disabled because we are using JWT
                 .csrf(csrf -> csrf.disable())
 
+                // No session - JWT based authentication
                 .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                        session.sessionCreationPolicy(
+                                SessionCreationPolicy.STATELESS
+                        )
+                )
 
                 .authorizeHttpRequests(auth -> auth
+                        // PUBLIC APIs
 
-                        // Public APIs
                         .requestMatchers(
                                 "/",
                                 "/api",
-                                "/auth/**",
-                                "/shop/**",
-                                "/users/**",
-                                "/address/**",
-                                "/admin/**"
+                                "/auth/**"
                         ).permitAll()
 
-                        // All other APIs require JWT
-                        .anyRequest().authenticated()
+                        // ADMIN ONLY
+
+                        .requestMatchers("/admin/**")
+                        .hasRole("ADMIN")
+
+
+                        // USER / SHOPKEEPER / ADMIN
+
+                        .requestMatchers(
+                                "/users/**",
+                                "/address/**"
+                        )
+                        .hasAnyRole(
+                                "USER",
+                                "SHOPKEEPER",
+                                "ADMIN"
+                        )
+
+                        // SHOP REGISTRATION
+
+                        .requestMatchers("/shop/register")
+                        .hasAnyRole(
+                                "USER",
+                                "SHOPKEEPER"
+                        )
+
+                        // EVERYTHING ELSE
+
+                        .anyRequest()
+                        .authenticated()
                 )
 
+                // Disable form login
                 .formLogin(form -> form.disable())
 
+                // Disable HTTP Basic
                 .httpBasic(basic -> basic.disable());
 
+
+        // JWT filter
         http.addFilterBefore(
                 jwtAuthenticationFilter,
                 UsernamePasswordAuthenticationFilter.class
@@ -57,6 +90,7 @@ public class SecurityConfig {
         return http.build();
     }
 
+
     @Bean
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration configuration)
@@ -64,5 +98,4 @@ public class SecurityConfig {
 
         return configuration.getAuthenticationManager();
     }
-
 }

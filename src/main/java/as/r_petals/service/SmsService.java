@@ -19,18 +19,62 @@ public class SmsService {
     @Value("${twilio.phone_number}")
     private String phoneNumber;
 
+
     @PostConstruct
     public void init() {
-        Twilio.init(sid, token);
+
+        Twilio.init(
+                sid,
+                token
+        );
     }
 
-    public void sendOtps(String mobileNumber, String otp) {
-        String formattedNumber = mobileNumber.startsWith("+") ? mobileNumber : "+91" + mobileNumber;
+
+    public void sendOtps(
+            String mobileNumber,
+            String otp) {
+
+        String formattedNumber =
+                formatIndianNumber(mobileNumber);
+
 
         Message.creator(
                 new PhoneNumber(formattedNumber),
                 new PhoneNumber(phoneNumber),
-                "Your R-Petals OTP is: " + otp + ". Valid for 5 minutes."
+                "Your R-Petals OTP is: "
+                        + otp
+                        + ". Valid for 5 minutes."
         ).create();
+    }
+
+
+    private String formatIndianNumber(
+            String mobileNumber) {
+
+        String number =
+                mobileNumber.trim();
+
+
+        if (number.startsWith("+")) {
+            return number;
+        }
+
+
+        if (number.startsWith("91")
+                && number.length() == 12) {
+
+            return "+" + number;
+        }
+
+
+        if (number.length() == 10) {
+
+            return "+91" + number;
+        }
+
+
+        throw new IllegalArgumentException(
+                "Invalid mobile number"
+        );
     }
 }

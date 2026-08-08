@@ -29,17 +29,22 @@ public class AuthService {
     // Send OTP
     public Map<String, String> sendOtp(String mobileNumber) {
 
-        String otp = otpService.generateOtp(mobileNumber,
-                OtpType.MOBILE);
-
-        //send sms on mobile number
-//        smsService.sendOtps(mobileNumber, otp);
-
         Map<String, String> response = new HashMap<>();
 
-        response.put("otp", otp);
-        response.put("success", "true");
-        response.put("message", "OTP Sent Successfully");
+        try {
+            String otp = otpService.generateOtp( mobileNumber, OtpType.MOBILE );
+
+            // Send OTP through SMS
+            smsService.sendOtps( mobileNumber, otp);
+            response.put("otp", otp);
+            response.put("success", "true");
+            response.put("message", "OTP sent successfully");
+
+        } catch (RuntimeException e) {
+
+            response.put("success", "false");
+            response.put("message", e.getMessage() );
+        }
 
         return response;
     }
@@ -63,7 +68,9 @@ public class AuthService {
 
         if (userService.existsByMobileNumber(mobileNumber)) {
 
-            user = userService.findByMobileNumber(mobileNumber).orElseThrow();
+            user = userService.findByMobileNumber(mobileNumber).orElseThrow(
+                    () -> new RuntimeException("User not found")
+            );
 
             user.setVerified(true);
             user.setUpdatedAt(LocalDateTime.now());
