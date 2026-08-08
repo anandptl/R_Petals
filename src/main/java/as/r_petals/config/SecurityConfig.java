@@ -37,7 +37,8 @@ public class SecurityConfig {
                                 "/auth/**",
                                 "/shop/**",
                                 "/users/**",
-                                "/address/**"
+                                "/address/**",
+                                "/admin/**"
                         ).permitAll()
 
                         // All other APIs require JWT

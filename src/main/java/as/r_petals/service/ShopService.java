@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+import as.r_petals.enums.Role;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -57,4 +58,73 @@ public class ShopService {
         return response;
     }
 
+
+    //    shop approve by admin for the shops....
+    public Map<String, Object> approveShop(String shopId) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        Shops shop = shopRepository.findById(shopId).orElse(null);
+
+        if (shop == null) {
+
+            response.put("success", false);
+            response.put("message", "Shop not found");
+
+            return response;
+        }
+
+        Users user = userRepository.findById(shop.getUserId()).orElse(null);
+
+        if (user == null) {
+
+            response.put("success", false);
+            response.put("message", "User not found");
+
+            return response;
+        }
+
+        shop.setStatus(ShopStatus.APPROVED);
+        shop.setActive(true);
+        shop.setUpdatedAt(LocalDateTime.now());
+
+        shopRepository.save(shop);
+
+        user.setRole(Role.SHOPKEEPER);
+        user.setUpdatedAt(LocalDateTime.now());
+
+        userRepository.save(user);
+
+        response.put("success", true);
+        response.put("message", "Shop Approved Successfully");
+
+        return response;
+    }
+
+    //    shops reject by the admin..
+    public Map<String, Object> rejectShop(String shopId) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        Shops shop = shopRepository.findById(shopId).orElse(null);
+
+        if (shop == null) {
+
+            response.put("success", false);
+            response.put("message", "Shop not found");
+
+            return response;
+        }
+
+        shop.setStatus(ShopStatus.REJECTED);
+        shop.setActive(false);
+        shop.setUpdatedAt(LocalDateTime.now());
+
+        shopRepository.save(shop);
+
+        response.put("success", true);
+        response.put("message", "Shop Rejected");
+
+        return response;
+    }
 }
