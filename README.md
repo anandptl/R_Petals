@@ -53,3 +53,8 @@ The system supports users, shops, products, categories, subcategories, addresses
                           │
                           ▼
                       MongoDB
+
+
+### Ek suggestion
+
+Tumhare project mein README ko **abhi se maintain karna bahut useful rahega**. Jab bhi koi endpoint complete ho, usko API section mein add karte jaana. Aur jo feature abhi implement nahi hua hai—jaise **Order + nearest-shop assignment**—use `[ ]` mein hi rakho, `[x]` mat karo. Isse GitHub par project ki actual progress clear dikhegi.
