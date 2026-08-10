@@ -1,8 +1,15 @@
 package as.r_petals.controller;
 
+import as.r_petals.dto.auth.LoginResponse;
+import as.r_petals.dto.auth.SendOtpRequest;
+import as.r_petals.dto.auth.VerifyOtpRequest;
+import as.r_petals.dto.common.ApiResponse;
 import as.r_petals.service.AuthService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 
 import java.util.Map;
 
@@ -14,25 +21,26 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/send-otp")
-    public Map<String, String> sendOtp(@RequestParam String mobileNumber) {
+    public ResponseEntity<ApiResponse<String>> sendOtp(
+            @Valid @RequestBody SendOtpRequest request) {
 
-        if (mobileNumber == null || !mobileNumber.matches("^[6-9]\\d{9}$")) {
-
-            return Map.of(
-                    "success", "false",
-                    "message",
-                    "Invalid mobile number"
-            );
-        }
-        return authService.sendOtp(mobileNumber);
+        return ResponseEntity.ok(
+                authService.sendOtp(
+                        request.getMobileNumber()
+                )
+        );
     }
 
     @PostMapping("/verify-otp")
-    public Map<String, Object> verifyOtp(
-            @RequestParam String mobileNumber,
-            @RequestParam String otp) {
+    public ResponseEntity<ApiResponse<LoginResponse>> verifyOtp(
+            @Valid @RequestBody VerifyOtpRequest request) {
 
-        return authService.verifyOtp(mobileNumber, otp);
+        return ResponseEntity.ok(
+                authService.verifyOtp(
+                        request.getMobileNumber(),
+                        request.getOtp()
+                )
+        );
     }
 
 }

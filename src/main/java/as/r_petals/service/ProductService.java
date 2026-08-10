@@ -1,8 +1,13 @@
 package as.r_petals.service;
 
+import as.r_petals.dto.FullProductRequest;
+import as.r_petals.dto.product.ProductResponse;
+import as.r_petals.dto.product.ProductUpdateRequest;
 import as.r_petals.entities.Category;
 import as.r_petals.entities.Product;
 import as.r_petals.entities.SubCategory;
+import as.r_petals.exception.ConflictException;
+import as.r_petals.exception.ResourceNotFoundException;
 import as.r_petals.repository.CategoryRepository;
 import as.r_petals.repository.ProductRepository;
 import as.r_petals.repository.SubCategoryRepository;
@@ -25,174 +30,90 @@ public class ProductService {
     @Autowired
     private ProductRepository productRepository;
 
-    public Product createFullProduct(
-            String categoryName,
-            String categoryImage,
-            String subCategoryName,
-            String productName,
-            String description,
-            Double price,
-            String productImage
-    ) {
+    public ProductResponse createFullProduct(FullProductRequest request) {
+        String categoryName = request.getCategoryName().trim();
+        String subCategoryName = request.getSubCategoryName().trim();
+        String productName = request.getProductName().trim();
 
-        // 1) Category: pehle se hai to reuse, warna naya banao
         Category category = categoryRepository
                 .findByCategoryNameIgnoreCase(categoryName)
                 .orElseGet(() -> {
-                    Category newCategory = new Category();
-                    newCategory.setCategoryName(categoryName);
-                    newCategory.setCategoryImage(categoryImage);
-                    newCategory.setActive(true);
-                    newCategory.setCreatedAt(LocalDateTime.now());
-                    newCategory.setUpdatedAt(LocalDateTime.now());
-                    return categoryRepository.save(newCategory);
+                    Category c = new Category();
+                    c.setCategoryName(categoryName);
+                    c.setCategoryImage(request.getCategoryImage());
+                    c.setActive(true);
+                    c.setCreatedAt(LocalDateTime.now());
+                    c.setUpdatedAt(LocalDateTime.now());
+                    return categoryRepository.save(c);
                 });
 
-        // 2) SubCategory: isi category ke andar pehle se hai to reuse, warna naya banao
         SubCategory subCategory = subCategoryRepository
                 .findByCategoryIdAndSubCategoryNameIgnoreCase(category.getId(), subCategoryName)
                 .orElseGet(() -> {
-                    SubCategory newSubCategory = new SubCategory();
-                    newSubCategory.setCategoryId(category.getId());
-                    newSubCategory.setSubCategoryName(subCategoryName);
-                    newSubCategory.setActive(true);
-                    newSubCategory.setCreatedAt(LocalDateTime.now());
-                    newSubCategory.setUpdatedAt(LocalDateTime.now());
-                    return subCategoryRepository.save(newSubCategory);
+                    SubCategory s = new SubCategory();
+                    s.setCategoryId(category.getId());
+                    s.setSubCategoryName(subCategoryName);
+                    s.setActive(true);
+                    s.setCreatedAt(LocalDateTime.now());
+                    s.setUpdatedAt(LocalDateTime.now());
+                    return subCategoryRepository.save(s);
                 });
 
-        // 3) Duplicate product check
         if (productRepository.existsBySubCategoryIdAndProductNameIgnoreCase(subCategory.getId(), productName)) {
-            throw new IllegalArgumentException(
-                    "Product '" + productName + "' already exists in this subcategory");
+            throw new ConflictException("Product already exists in this subcategory");
         }
 
-        // 4) Product save karo
         Product product = new Product();
         product.setSubCategoryId(subCategory.getId());
         product.setProductName(productName);
-        product.setDescription(description);
-        product.setPrice(price);
-        product.setProductImage(productImage);
+        product.setDescription(request.getDescription());
+        product.setPrice(request.getPrice());
+        product.setProductImage(request.getProductImage());
         product.setActive(true);
         product.setCreatedAt(LocalDateTime.now());
         product.setUpdatedAt(LocalDateTime.now());
 
-        return productRepository.save(product);
+        return new ProductResponse(productRepository.save(product));
     }
 
-    // Update Product
-    public Map<String, Object> updateProduct(String productId, Product request) {
+    public ProductResponse updateProduct(String productId, ProductUpdateRequest request) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
-        Map<String, Object> response = new HashMap<>();
-
-        Product product = productRepository.findById(productId).orElse(null);
-
-        if (product == null) {
-            response.put("success", false);
-            response.put("message", "Product Not Found");
-            return response;
+        if (request.getProductName() != null) {
+            String name = request.getProductName().trim();
+            product.setProductName(name);
         }
-
-        product.setDescription(request.getDescription());
-        product.setPrice(request.getPrice());
-        product.setProductImage(request.getProductImage());
-        product.setActive(request.isActive());
+        if (request.getDescription() != null) product.setDescription(request.getDescription());
+        if (request.getPrice() != null) product.setPrice(request.getPrice());
+        if (request.getProductImage() != null) product.setProductImage(request.getProductImage());
+        if (request.getActive() != null) product.setActive(request.getActive());
         product.setUpdatedAt(LocalDateTime.now());
 
-        productRepository.save(product);
-
-        response.put("success", true);
-        response.put("message", "Product Updated Successfully");
-        response.put("product", product);
-
-        return response;
+        return new ProductResponse(productRepository.save(product));
     }
 
-    // Delete Product
-    public Map<String, Object> deleteProduct(String productId) {
-
-        Map<String, Object> response = new HashMap<>();
-
-        Product product = productRepository.findById(productId).orElse(null);
-
-        if (product == null) {
-
-            response.put("success", false);
-            response.put("message", "Product Not Found");
-
-            return response;
-        }
-
+    public void deleteProduct(String productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
         productRepository.delete(product);
-
-        response.put("success", true);
-        response.put("message", "Product Deleted Successfully");
-
-        return response;
     }
 
-    // Delete SubCategory
-    public Map<String, Object> deleteSubCategory(String subCategoryId) {
-
-        Map<String, Object> response = new HashMap<>();
-
+    public void deleteSubCategory(String subCategoryId) {
         if (productRepository.existsBySubCategoryId(subCategoryId)) {
-
-            response.put("success", false);
-            response.put("message", "SubCategory contains products.");
-
-            return response;
+            throw new ConflictException("Subcategory contains products");
         }
-
-        SubCategory subCategory =
-                subCategoryRepository.findById(subCategoryId).orElse(null);
-
-        if (subCategory == null) {
-
-            response.put("success", false);
-            response.put("message", "SubCategory Not Found");
-
-            return response;
-        }
-
+        SubCategory subCategory = subCategoryRepository.findById(subCategoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Subcategory not found"));
         subCategoryRepository.delete(subCategory);
-
-        response.put("success", true);
-        response.put("message", "SubCategory Deleted");
-
-        return response;
     }
 
-    // Delete Category
-    public Map<String, Object> deleteCategory(String categoryId) {
-
-        Map<String, Object> response = new HashMap<>();
-
+    public void deleteCategory(String categoryId) {
         if (subCategoryRepository.existsByCategoryId(categoryId)) {
-
-            response.put("success", false);
-            response.put("message", "Category contains SubCategories.");
-
-            return response;
+            throw new ConflictException("Category contains subcategories");
         }
-
-        Category category =
-                categoryRepository.findById(categoryId).orElse(null);
-
-        if (category == null) {
-
-            response.put("success", false);
-            response.put("message", "Category Not Found");
-
-            return response;
-        }
-
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
         categoryRepository.delete(category);
-
-        response.put("success", true);
-        response.put("message", "Category Deleted");
-
-        return response;
     }
 }

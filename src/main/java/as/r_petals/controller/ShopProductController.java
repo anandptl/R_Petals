@@ -3,11 +3,9 @@ package as.r_petals.controller;
 import as.r_petals.dto.common.ApiResponse;
 import as.r_petals.dto.shop.ShopProductRequest;
 import as.r_petals.dto.shop.ShopProductResponse;
-import as.r_petals.dto.shop.ShopRegistrationRequest;
-import as.r_petals.dto.shop.ShopResponse;
 import as.r_petals.service.ShopProductService;
-import as.r_petals.service.ShopService;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,27 +13,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/shop")
-public class ShopController {
+@RequestMapping("/shop/products")
+public class ShopProductController {
 
-    private final ShopProductService shopProductService;
-    private final ShopService shopService;
-    public ShopController(ShopProductService shopProductService, ShopService shopService) {
-        this.shopProductService = shopProductService;
-        this.shopService = shopService;
-    }
+    @Autowired
+    private ShopProductService shopProductService;
 
-
-    @PostMapping("/register")
-    public ResponseEntity<ApiResponse<ShopResponse>> registerShop(@Valid @RequestBody ShopRegistrationRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Shop registration request submitted successfully",
-                        shopService.registerShop(request)));
-    }
-
-
-
-    @PostMapping("/product/add")
+    @PostMapping
     public ResponseEntity<ApiResponse<ShopProductResponse>> addProduct(@Valid @RequestBody ShopProductRequest request) {
 
         return ResponseEntity.status(HttpStatus.CREATED).body( shopProductService.addProduct(request));
@@ -58,3 +42,5 @@ public class ShopController {
         return ResponseEntity.ok(shopProductService.getShopsHavingProduct(productId));
     }
 }
+
+

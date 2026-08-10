@@ -1,10 +1,14 @@
 package as.r_petals.service;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 
+import as.r_petals.dto.shop.ShopRegistrationRequest;
+import as.r_petals.dto.shop.ShopResponse;
+import as.r_petals.dto.shop.ShopUpdateRequest;
 import as.r_petals.enums.Role;
+import as.r_petals.exception.BadRequestException;
+import as.r_petals.exception.ConflictException;
+import as.r_petals.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -19,112 +23,101 @@ public class ShopService {
 
     @Autowired
     private ShopRepository shopRepository;
-
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private CurrentUserService currentUserService;
 
-    public Map<String, Object> registerShop(Shops shop) {
+    public ShopResponse registerShop(ShopRegistrationRequest request) {
+        Users user = currentUserService.getCurrentUser();
 
-        Map<String, Object> response = new HashMap<>();
-
-        // User Exists
-        Users user = userRepository.findById(shop.getUserId()).orElse(null);
-
-        if (user == null) {
-            response.put("success", false);
-            response.put("message", "User not found.");
-            return response;
+        if (user.getRole() == Role.ADMIN) {
+            throw new BadRequestException("Admin cannot register a customer shop");
         }
 
-        // Already Registered
-        if (shopRepository.existsByUserId(shop.getUserId())) {
-            response.put("success", false);
-            response.put("message", "You have already applied for shop registration.");
-            return response;
+        if (shopRepository.existsByUserId(user.getId())) {
+            throw new ConflictException("You have already applied for shop registration");
         }
 
-        // Save Shop
+        Shops shop = new Shops();
+        shop.setUserId(user.getId());
+        shop.setShopName(request.getShopName().trim());
+        shop.setShopkeeperName(request.getShopkeeperName().trim());
+        shop.setGstNumber(request.getGstNumber());
+        shop.setAddress(request.getAddress().trim());
+        shop.setCity(request.getCity().trim());
+        shop.setState(request.getState().trim());
+        shop.setPincode(request.getPincode());
+        shop.setLatitude(request.getLatitude());
+        shop.setLongitude(request.getLongitude());
+        shop.setShopImage(request.getShopImage());
         shop.setStatus(ShopStatus.PENDING);
         shop.setActive(false);
         shop.setCreatedAt(LocalDateTime.now());
         shop.setUpdatedAt(LocalDateTime.now());
 
-        Shops savedShop = shopRepository.save(shop);
-
-        response.put("success", true);
-        response.put("message", "Shop registration request submitted successfully. Please wait for admin approval.");
-        response.put("shop", savedShop);
-
-        return response;
+        return new ShopResponse(shopRepository.save(shop));
     }
 
+    public ShopResponse approveShop(String shopId) {
+        Shops shop = shopRepository.findById(shopId)
+                .orElseThrow(() -> new ResourceNotFoundException("Shop not found"));
 
-    //    shop approve by admin for the shops....
-    public Map<String, Object> approveShop(String shopId) {
-
-        Map<String, Object> response = new HashMap<>();
-
-        Shops shop = shopRepository.findById(shopId).orElse(null);
-
-        if (shop == null) {
-
-            response.put("success", false);
-            response.put("message", "Shop not found");
-
-            return response;
+        if (shop.getStatus() != ShopStatus.PENDING) {
+            throw new ConflictException("Only pending shops can be approved");
         }
 
-        Users user = userRepository.findById(shop.getUserId()).orElse(null);
-
-        if (user == null) {
-
-            response.put("success", false);
-            response.put("message", "User not found");
-
-            return response;
-        }
+        Users user = userRepository.findById(shop.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("Shop owner not found"));
 
         shop.setStatus(ShopStatus.APPROVED);
         shop.setActive(true);
         shop.setUpdatedAt(LocalDateTime.now());
-
-        shopRepository.save(shop);
+        Shops savedShop = shopRepository.save(shop);
 
         user.setRole(Role.SHOPKEEPER);
+        user.setShop(savedShop);
         user.setUpdatedAt(LocalDateTime.now());
-
         userRepository.save(user);
 
-        response.put("success", true);
-        response.put("message", "Shop Approved Successfully");
-
-        return response;
+        return new ShopResponse(savedShop);
     }
 
-    //    shops reject by the admin..
-    public Map<String, Object> rejectShop(String shopId) {
+    public void rejectShop(String shopId) {
+        Shops shop = shopRepository.findById(shopId)
+                .orElseThrow(() -> new ResourceNotFoundException("Shop not found"));
 
-        Map<String, Object> response = new HashMap<>();
-
-        Shops shop = shopRepository.findById(shopId).orElse(null);
-
-        if (shop == null) {
-
-            response.put("success", false);
-            response.put("message", "Shop not found");
-
-            return response;
+        if (shop.getStatus() != ShopStatus.PENDING) {
+            throw new ConflictException("Only pending shops can be rejected");
         }
 
         shop.setStatus(ShopStatus.REJECTED);
         shop.setActive(false);
         shop.setUpdatedAt(LocalDateTime.now());
-
         shopRepository.save(shop);
+    }
 
-        response.put("success", true);
-        response.put("message", "Shop Rejected");
+    public ShopResponse updateCurrentShop(ShopUpdateRequest request) {
+        Users user = currentUserService.getCurrentUser();
+        Shops shop = shopRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Shop not found"));
 
-        return response;
+        if (shop.getStatus() == ShopStatus.REJECTED) {
+            throw new ConflictException("Rejected shop cannot be updated");
+        }
+
+        if (request.getShopName() != null) shop.setShopName(request.getShopName().trim());
+        if (request.getShopkeeperName() != null) shop.setShopkeeperName(request.getShopkeeperName().trim());
+        if (request.getGstNumber() != null) shop.setGstNumber(request.getGstNumber());
+        if (request.getAddress() != null) shop.setAddress(request.getAddress().trim());
+        if (request.getCity() != null) shop.setCity(request.getCity().trim());
+        if (request.getState() != null) shop.setState(request.getState().trim());
+        if (request.getPincode() != null) shop.setPincode(request.getPincode());
+        if (request.getLatitude() != null) shop.setLatitude(request.getLatitude());
+        if (request.getLongitude() != null) shop.setLongitude(request.getLongitude());
+        if (request.getShopImage() != null) shop.setShopImage(request.getShopImage());
+        shop.setUpdatedAt(LocalDateTime.now());
+
+        return new ShopResponse(shopRepository.save(shop));
     }
 }

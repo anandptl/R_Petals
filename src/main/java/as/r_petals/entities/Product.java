@@ -3,6 +3,7 @@ package as.r_petals.entities;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Document(collection = "products")
@@ -17,7 +18,7 @@ public class Product {
 
     private String description;
 
-    private Double price;
+    private BigDecimal price;
 
     private String productImage;
 
@@ -63,11 +64,11 @@ public class Product {
         this.description = description;
     }
 
-    public Double getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
-    public void setPrice(Double price) {
+    public void setPrice(BigDecimal price) {
         this.price = price;
     }
 

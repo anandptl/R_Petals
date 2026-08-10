@@ -1,9 +1,12 @@
 package as.r_petals.service;
 
+import as.r_petals.config.PasswordConfig;
 import as.r_petals.entities.Otp;
 import as.r_petals.enums.OtpType;
+import as.r_petals.exception.BadRequestException;
 import as.r_petals.repository.OtpRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -17,216 +20,122 @@ public class OtpService {
     @Autowired
     private OtpRepository otpRepository;
 
+    @Autowired
+    private PasswordConfig passwordConfig;
+
+    private final PasswordEncoder passwordEncoder;
+
+    public OtpService(PasswordEncoder passwordEncoder) {
+        this.passwordEncoder = passwordEncoder;
+    }
 
     private static final int OTP_LENGTH = 6;
-
     private static final int OTP_EXPIRY_MINUTES = 5;
-
     private static final int MAX_ATTEMPTS = 5;
-
     private static final int MAX_REQUESTS_PER_HOUR = 5;
-
     private static final int RESEND_COOLDOWN_SECONDS = 60;
-
 
     private final SecureRandom secureRandom = new SecureRandom();
 
-
-    // ============================================================
     // Generate OTP
-    // ============================================================
-
-    public String generateOtp(String identifier, OtpType type) {
-
+    public synchronized String generateOtp(String identifier, OtpType type) {
+        String normalizedIdentifier = normalize(identifier, type);
         LocalDateTime now = LocalDateTime.now();
 
-        Otp existingOtp = otpRepository
-                .findByIdentifierAndType(identifier, type)
-                .orElse(null);
+        Otp otpEntity = otpRepository
+                .findByIdentifierAndType(normalizedIdentifier, type)
+                .orElseGet(Otp::new);
 
-        // Rate limit
-
-        if (existingOtp != null) {
-
-            // 60 second resend cooldown
-            if (existingOtp.getCreatedAt() != null &&
-                    existingOtp.getCreatedAt()
-                            .plusSeconds(RESEND_COOLDOWN_SECONDS)
-                            .isAfter(now)) {
-
-                throw new RuntimeException(
-                        "Please wait before requesting another OTP."
-                );
-            }
-
-
-            // Reset hourly window
-            if (existingOtp.getWindowStart() == null ||
-                    existingOtp.getWindowStart()
-                            .plusHours(1)
-                            .isBefore(now)) {
-
-                existingOtp.setWindowStart(now);
-                existingOtp.setRequestCount(0);
-            }
-
-
-            // Maximum 5 OTP requests per hour
-            if (existingOtp.getRequestCount()
-                    >= MAX_REQUESTS_PER_HOUR) {
-
-                throw new RuntimeException(
-                        "Too many OTP requests. Please try again later."
-                );
-            }
+        if (otpEntity.getIdentifier() == null) {
+            otpEntity.setIdentifier(normalizedIdentifier);
+            otpEntity.setType(type);
+            otpEntity.setWindowStart(now);
+            otpEntity.setRequestCount(0);
         }
 
-        // Generate secure OTP
+        if (otpEntity.getCreatedAt() != null &&
+                otpEntity.getCreatedAt().plusSeconds(RESEND_COOLDOWN_SECONDS).isAfter(now)) {
+            throw new BadRequestException("Please wait before requesting another OTP");
+        }
+
+        if (otpEntity.getWindowStart() == null ||
+                !otpEntity.getWindowStart().plusHours(1).isAfter(now)) {
+            otpEntity.setWindowStart(now);
+            otpEntity.setRequestCount(0);
+        }
+
+        if (otpEntity.getRequestCount() >= MAX_REQUESTS_PER_HOUR) {
+            throw new BadRequestException("Too many OTP requests. Please try again later");
+        }
 
         int number = secureRandom.nextInt(1_000_000);
+        String otp = String.format("%0" + OTP_LENGTH + "d", number);
 
-        String otp = String.format(
-                "%0" + OTP_LENGTH + "d",
-                number
-        );
-
-        // Create / update OTP entity
-
-        if (existingOtp == null) {
-
-            existingOtp = new Otp();
-
-            existingOtp.setIdentifier(identifier);
-            existingOtp.setType(type);
-
-            existingOtp.setRequestCount(0);
-            existingOtp.setWindowStart(now);
-        }
-
-
-        existingOtp.setOtp(hashOtp(otp));
-
-        existingOtp.setCreatedAt(now);
-
-        existingOtp.setExpiryTime(
-                now.plusMinutes(OTP_EXPIRY_MINUTES)
-        );
-
-        existingOtp.setAttempts(0);
-
-        existingOtp.setRequestCount(
-                existingOtp.getRequestCount() + 1
-        );
-
-
-        otpRepository.save(existingOtp);
-
+        otpEntity.setOtp(passwordEncoder.encode(otp));
+        otpEntity.setCreatedAt(now);
+        otpEntity.setExpiryTime(now.plusMinutes(OTP_EXPIRY_MINUTES));
+        otpEntity.setAttempts(0);
+        otpEntity.setRequestCount(otpEntity.getRequestCount() + 1);
+        otpRepository.save(otpEntity);
 
         return otp;
     }
 
     // Verify OTP
-
-    public boolean verifyOtp(
-            String identifier,
-            String otp,
-            OtpType type) {
-
-
+    public boolean verifyOtp(String identifier, String otp, OtpType type) {
+        String normalizedIdentifier = normalize(identifier, type);
         Otp entity = otpRepository
-                .findByIdentifierAndType(identifier, type)
+                .findByIdentifierAndType(normalizedIdentifier, type)
                 .orElse(null);
 
-
-        if (entity == null) {
+        if (entity == null || entity.getOtp() == null) {
             return false;
         }
 
-        // Expired
-
-        if (LocalDateTime.now()
-                .isAfter(entity.getExpiryTime())) {
-
-            otpRepository.delete(entity);
-
+        if (entity.getExpiryTime() == null || !LocalDateTime.now().isBefore(entity.getExpiryTime())) {
+            invalidate(normalizedIdentifier, type);
             return false;
         }
-
-        // Maximum attempts
 
         if (entity.getAttempts() >= MAX_ATTEMPTS) {
-
-            otpRepository.delete(entity);
-
+            invalidate(normalizedIdentifier, type);
             return false;
         }
 
-        // Compare hashed OTP
-
-        String hashedOtp = hashOtp(otp);
-
-
-        if (!MessageDigest.isEqual(
-                hashedOtp.getBytes(StandardCharsets.UTF_8),
-                entity.getOtp()
-                        .getBytes(StandardCharsets.UTF_8)
-        )) {
-
-            entity.setAttempts(
-                    entity.getAttempts() + 1
-            );
-
+        if (!passwordEncoder.matches(otp, entity.getOtp())) {
+            entity.setAttempts(entity.getAttempts() + 1);
+            if (entity.getAttempts() >= MAX_ATTEMPTS) {
+                entity.setOtp(null);
+            }
             otpRepository.save(entity);
-
             return false;
         }
 
-        // OTP correct → delete immediately
-
-        otpRepository.delete(entity);
-
+        // Keep requestCount/windowStart so the hourly rate limit cannot be reset by a successful OTP.
+        entity.setOtp(null);
+        entity.setAttempts(MAX_ATTEMPTS);
+        entity.setExpiryTime(LocalDateTime.now());
+        otpRepository.save(entity);
         return true;
     }
 
+    public void invalidate(String identifier, OtpType type) {
+        String normalizedIdentifier = normalize(identifier, type);
+        otpRepository.findByIdentifierAndType(normalizedIdentifier, type)
+                .ifPresent(entity -> {
+                    entity.setOtp(null);
+                    entity.setAttempts(MAX_ATTEMPTS);
+                    entity.setExpiryTime(LocalDateTime.now());
+                    entity.setCreatedAt(null);
+                    otpRepository.save(entity);
+                });
+    }
 
-    // Hash OTP
-
-    private String hashOtp(String otp) {
-
-        try {
-
-            MessageDigest digest =
-                    MessageDigest.getInstance("SHA-256");
-
-            byte[] hash =
-                    digest.digest(
-                            otp.getBytes(StandardCharsets.UTF_8)
-                    );
-
-            StringBuilder hexString =
-                    new StringBuilder();
-
-            for (byte b : hash) {
-
-                String hex =
-                        Integer.toHexString(
-                                0xff & b
-                        );
-
-                if (hex.length() == 1) {
-                    hexString.append('0');
-                }
-
-                hexString.append(hex);
-            }
-
-            return hexString.toString();
-
-        } catch (Exception e) {
-
-            throw new RuntimeException(
-                    "Unable to generate OTP hash"
-            );
+    private String normalize(String identifier, OtpType type) {
+        if (identifier == null || identifier.isBlank()) {
+            throw new BadRequestException("OTP identifier is required");
         }
+        String value = identifier.trim();
+        return type == OtpType.EMAIL ? value.toLowerCase() : value;
     }
 }

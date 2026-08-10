@@ -17,12 +17,15 @@ public class Users {
 
     private String fullName;
 
-    private String email;
-
     @Indexed(unique = true)
     private String mobileNumber;
 
+    @Indexed(unique = true, sparse = true)
+    private String email;
+
     private boolean verified = false;
+
+    private boolean emailVerified = false;
 
     // USER | SHOPKEEPER | ADMIN
     private Role role = Role.USER;
@@ -80,6 +83,14 @@ public class Users {
 
     public void setVerified(boolean verified) {
         this.verified = verified;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(boolean emailVerified) {
+        this.emailVerified = emailVerified;
     }
 
     public Role getRole() {

@@ -17,14 +17,14 @@ public class CustomUserDetailsService implements UserDetailsService {
             throws UsernameNotFoundException {
 
         Users user = repo.findByMobileNumber(mobileNumber)
-                .orElseThrow(() ->
-                        new UsernameNotFoundException(
+                .orElseThrow(() -> new UsernameNotFoundException(
                                 "User not found : " + mobileNumber));
 
         return User.builder()
                 .username(user.getMobileNumber())
-                .password("") // OTP login hai, password use nahi hoga
-                .roles("USER")
+                .password("")
+                .roles(user.getRole().name())
+                .disabled(!user.isActive())
                 .build();
     }
 }

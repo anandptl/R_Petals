@@ -1,8 +1,15 @@
 package as.r_petals.controller;
 
+import as.r_petals.dto.auth.SendEmailOtpRequest;
+import as.r_petals.dto.auth.VerifyEmailOtpRequest;
+import as.r_petals.dto.common.ApiResponse;
+import as.r_petals.dto.user.UpdateUserRequest;
+import as.r_petals.dto.user.UserResponse;
 import as.r_petals.service.OtpService;
 import as.r_petals.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -18,23 +25,14 @@ public class UserController {
     private UserService userService;
 
     @PostMapping("/send-emailOtp")
-    public Map<String,Object> sendEmailOtp(
-            @RequestParam String userId,
-            @RequestParam String name,
-            @RequestParam String email){
-
-        return userService.sendEmailOtp(userId, name, email);
-
+    public ResponseEntity<ApiResponse<Void>> sendEmailOtp(
+            @Valid @RequestBody SendEmailOtpRequest request) {
+        return ResponseEntity.ok(userService.sendEmailOtp(request.getName(), request.getEmail()));
     }
 
     @PostMapping("/verify-emailOtp")
-    public Map<String,Object> verifyEmailOtp(
-            @RequestParam String userId,
-            @RequestParam String name,
-            @RequestParam String email,
-            @RequestParam String otp){
-
-        return userService.verifyEmailOtp(userId, name, email, otp );
-
+    public ResponseEntity<ApiResponse<Void>> verifyEmailOtp(
+            @Valid @RequestBody VerifyEmailOtpRequest request) {
+        return ResponseEntity.ok(userService.verifyEmailOtp(request.getName(), request.getEmail(), request.getOtp()));
     }
 }

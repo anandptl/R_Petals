@@ -1,9 +1,14 @@
 package as.r_petals.controller;
 
 import as.r_petals.dto.FullProductRequest;
+import as.r_petals.dto.common.ApiResponse;
+import as.r_petals.dto.product.ProductResponse;
+import as.r_petals.dto.product.ProductUpdateRequest;
+import as.r_petals.dto.shop.ShopResponse;
 import as.r_petals.entities.Product;
 import as.r_petals.service.ProductService;
 import as.r_petals.service.ShopService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,74 +20,49 @@ import java.util.Map;
 @RequestMapping("/admin")
 public class AdminController {
 
-    @Autowired
-    private ShopService shopService;
+    private final ShopService shopService;
+    private final ProductService productService;
 
-    @Autowired
-    private ProductService productService;
-
-    @PutMapping("/approve/{shopId}")
-    public Map<String, Object> approveShop(
-            @PathVariable String shopId) {
-
-        return shopService.approveShop(shopId);
+    public AdminController(ShopService shopService, ProductService productService) {
+        this.shopService = shopService;
+        this.productService = productService;
     }
 
-    @PutMapping("/reject/{shopId}")
-    public Map<String, Object> rejectShop(
-            @PathVariable String shopId) {
-
-        return shopService.rejectShop(shopId);
+    @PutMapping("/approve/{shopId}")
+    public ResponseEntity<ApiResponse<ShopResponse>> approveShop(@PathVariable String shopId) {
+        return ResponseEntity.ok(ApiResponse.success("Shop approved successfully", shopService.approveShop(shopId)));
     }
 
     @PostMapping("/add-product")
-    public ResponseEntity<?> addFullProduct(@RequestBody FullProductRequest request) {
-        try {
-            Product savedProduct = productService.createFullProduct(
-                    request.getCategoryName(),
-                    request.getCategoryImage(),
-                    request.getSubCategoryName(),
-                    request.getProductName(),
-                    request.getDescription(),
-                    request.getPrice(),
-                    request.getProductImage()
-            );
-            return ResponseEntity.status(HttpStatus.CREATED).body(savedProduct);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<ProductResponse>> addFullProduct(
+            @Valid @RequestBody FullProductRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Product created successfully", productService.createFullProduct(request)));
     }
 
-    // Product Update
     @PutMapping("/update/{productId}")
-    public Map<String, Object> updateProduct(
+    public ResponseEntity<ApiResponse<ProductResponse>> updateProduct(
             @PathVariable String productId,
-            @RequestBody Product product) {
-
-        return productService.updateProduct(productId, product);
+            @Valid @RequestBody ProductUpdateRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Product updated successfully",
+                productService.updateProduct(productId, request)));
     }
 
-    // Product Delete
     @DeleteMapping("/delete/{productId}")
-    public Map<String, Object> deleteProduct(
-            @PathVariable String productId) {
-
-        return productService.deleteProduct(productId);
+    public ResponseEntity<ApiResponse<Void>> deleteProduct(@PathVariable String productId) {
+        productService.deleteProduct(productId);
+        return ResponseEntity.ok(ApiResponse.success("Product deleted successfully"));
     }
 
-    // SubCategory Delete
     @DeleteMapping("/subcategory/{subCategoryId}")
-    public Map<String, Object> deleteSubCategory(
-            @PathVariable String subCategoryId) {
-
-        return productService.deleteSubCategory(subCategoryId);
+    public ResponseEntity<ApiResponse<Void>> deleteSubCategory(@PathVariable String subCategoryId) {
+        productService.deleteSubCategory(subCategoryId);
+        return ResponseEntity.ok(ApiResponse.success("Subcategory deleted successfully"));
     }
 
-    // Category Delete
     @DeleteMapping("/category/{categoryId}")
-    public Map<String, Object> deleteCategory(
-            @PathVariable String categoryId) {
-
-        return productService.deleteCategory(categoryId);
+    public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable String categoryId) {
+        productService.deleteCategory(categoryId);
+        return ResponseEntity.ok(ApiResponse.success("Category deleted successfully"));
     }
 }

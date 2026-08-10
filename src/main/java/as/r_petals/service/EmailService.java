@@ -27,17 +27,11 @@ public class EmailService {
     public void sendOtp(String to, String name, String otp) {
 
         try {
-
             MimeMessage message = mailSender.createMimeMessage();
-
-            MimeMessageHelper helper = new MimeMessageHelper(message, true);
-
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
             helper.setFrom(new InternetAddress( senderEmail,"R_Petals" ) );
-
             helper.setTo(to);
-
             helper.setSubject("Verify Your R_Petals Account" );
-
 
             String text =
                     "<div style='font-family:Arial,sans-serif;"
@@ -97,9 +91,7 @@ public class EmailService {
             mailSender.send(message);
 
         } catch (Exception e) {
-
             log.error("Failed to send OTP email to {}", to, e);
-
             throw new RuntimeException("Unable to send OTP email");
         }
     }

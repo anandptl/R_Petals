@@ -25,7 +25,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
     private CustomUserDetailsService userDetailsService;
 
-
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -45,26 +44,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             token = header.substring(7);
 
             try {
-
-                mobileNumber =
-                        jwtUtil.extractMobileNumber(token);
-
+                mobileNumber = jwtUtil.extractMobileNumber(token);
             } catch (Exception e) {
 
-                System.out.println(
-                        "Invalid JWT: " + e.getMessage()
-                );
+                System.out.println("Invalid JWT: " + e.getMessage());
             }
         }
 
         // Authenticate User
 
-        if (mobileNumber != null &&
-                SecurityContextHolder.getContext().getAuthentication() == null) {
+        if (mobileNumber != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
             try {
-
-                // First validate token
                 if (jwtUtil.validateToken(token)) {
 
                     UserDetails userDetails =userDetailsService.loadUserByUsername(mobileNumber);

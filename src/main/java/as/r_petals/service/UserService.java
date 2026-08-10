@@ -1,8 +1,13 @@
 package as.r_petals.service;
 
+import as.r_petals.dto.common.ApiResponse;
+import as.r_petals.dto.user.UpdateUserRequest;
+import as.r_petals.dto.user.UserResponse;
 import as.r_petals.entities.Users;
 import as.r_petals.enums.OtpType;
 import as.r_petals.enums.Role;
+import as.r_petals.exception.BadRequestException;
+import as.r_petals.exception.ConflictException;
 import as.r_petals.exception.ResourceNotFoundException;
 import as.r_petals.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +30,9 @@ public class UserService {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private CurrentUserService currentUserService;
+
     // Find User
     public Optional<Users> findByMobileNumber(String mobileNumber) {
         return userRepository.findByMobileNumber(mobileNumber);
@@ -37,9 +45,7 @@ public class UserService {
 
     // Register New User
     public Users createUser(String mobileNumber) {
-
         Users user = new Users();
-
         user.setMobileNumber(mobileNumber);
         user.setVerified(true);
         user.setRole(Role.USER);
@@ -51,75 +57,67 @@ public class UserService {
 
     // Update User
     public Users save(Users user) {
-
         user.setUpdatedAt(LocalDateTime.now());
-
         return userRepository.save(user);
     }
 
+    public ApiResponse<Void> sendEmailOtp(String name, String email) {
+        currentUserService.getCurrentUser();
+        String normalizedEmail = email.trim().toLowerCase();
 
-// sending email otp
-    public Map<String, Object> sendEmailOtp(String userId, String name, String email) {
+        userRepository.findByEmailIgnoreCase(normalizedEmail)
+                .ifPresent(existing -> {
+                    throw new ConflictException("Email is already in use");
+                });
 
-        Map<String, Object> response = new HashMap<>();
-
-        Users user = userRepository.findById(userId).orElseThrow(() ->
-                new ResourceNotFoundException(
-                        "User not found "
-                )
-        );
-
-//        if (user == null) {
-//            response.put("success", false);
-//            response.put("message", "User not found");
-//            return response;
-//        }
-
-        user.setEmail(email);
-        user.setUpdatedAt(LocalDateTime.now());
-
-        userRepository.save(user);
-
-        String otp = otpService.generateOtp(email, OtpType.EMAIL);
-
-        emailService.sendOtp(email, name,  otp);
-
-        response.put("success", true);
-        response.put("message", "Email OTP sent successfully");
-
-        return response;
-    }
-
-    public Map<String, Object> verifyEmailOtp(String userId,
-                                              String name,
-                                              String email,
-                                              String otp) {
-
-        Map<String, Object> response = new HashMap<>();
-
-        boolean verified = otpService.verifyOtp(email, otp, OtpType.EMAIL );
-
-        if (!verified) {
-
-            response.put("success", false);
-            response.put("message", "Invalid or Expired OTP");
-
-            return response;
+        String otp = otpService.generateOtp(normalizedEmail, OtpType.EMAIL);
+        try {
+            emailService.sendOtp(normalizedEmail, name.trim(), otp);
+        } catch (RuntimeException ex) {
+            otpService.invalidate(normalizedEmail, OtpType.EMAIL);
+            throw ex;
         }
 
-        Users user = userRepository.findById(userId).orElseThrow();
+        return ApiResponse.success("Email OTP sent successfully");
+    }
 
-        user.setVerified(true);
+    public ApiResponse<Void> verifyEmailOtp(String name, String email, String otp) {
+        Users user = currentUserService.getCurrentUser();
+        String normalizedEmail = email.trim().toLowerCase();
 
-        user.setFullName(name);
+        if (!otpService.verifyOtp(normalizedEmail, otp, OtpType.EMAIL)) {
+            throw new BadRequestException("Invalid or expired OTP");
+        }
 
+        userRepository.findByEmailIgnoreCase(normalizedEmail)
+                .filter(existing -> !existing.getId().equals(user.getId()))
+                .ifPresent(existing -> {
+                    throw new ConflictException("Email is already in use");
+                });
+
+        user.setEmail(normalizedEmail);
+        user.setFullName(name.trim());
+        user.setEmailVerified(true);
         user.setUpdatedAt(LocalDateTime.now());
-
         userRepository.save(user);
 
-        response.put("success", true);
-        response.put("message", "Email Verified Successfully");
+        return ApiResponse.success("Email verified successfully");
+    }
 
-        return response;
+    public ApiResponse<UserResponse> getCurrentUserProfile() {
+        return ApiResponse.success("User profile fetched successfully",
+                new UserResponse(currentUserService.getCurrentUser()));
+    }
+
+    public ApiResponse<UserResponse> updateCurrentUser(UpdateUserRequest request) {
+        Users user = currentUserService.getCurrentUser();
+
+        if (request.getFullName() != null && !request.getFullName().isBlank()) {
+            user.setFullName(request.getFullName().trim());
+        }
+
+        user.setUpdatedAt(LocalDateTime.now());
+        return ApiResponse.success("Profile updated successfully",
+                new UserResponse(userRepository.save(user)));
     }
 }
