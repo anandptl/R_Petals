@@ -41,11 +41,11 @@ public class ShopController {
         return ResponseEntity.status(HttpStatus.CREATED).body( shopProductService.addProduct(request));
     }
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<List<ShopProductResponse>>> getMyShopProducts() {
-
-        return ResponseEntity.ok(shopProductService.getMyShopProducts());
-    }
+//    @GetMapping
+//    public ResponseEntity<ApiResponse<List<ShopProductResponse>>> getMyShopProducts() {
+//
+//        return ResponseEntity.ok(shopProductService.getMyShopProducts());
+//    }
 
     @DeleteMapping("/{productId}")
     public ResponseEntity<ApiResponse<Void>>removeProduct(@PathVariable String productId) {

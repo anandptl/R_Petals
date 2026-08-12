@@ -20,8 +20,6 @@ public class Product {
 
     private BigDecimal price;
 
-    private String productImage;
-
     private boolean active = true;
 
     private LocalDateTime createdAt;
@@ -68,17 +66,7 @@ public class Product {
         return price;
     }
 
-    public void setPrice(BigDecimal price) {
-        this.price = price;
-    }
-
-    public String getProductImage() {
-        return productImage;
-    }
-
-    public void setProductImage(String productImage) {
-        this.productImage = productImage;
-    }
+    public void setPrice(BigDecimal price) {this.price = price;}
 
     public boolean isActive() {
         return active;

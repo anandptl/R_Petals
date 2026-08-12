@@ -3,17 +3,11 @@ package as.r_petals.service;
 import as.r_petals.dto.common.ApiResponse;
 import as.r_petals.dto.shop.ShopProductRequest;
 import as.r_petals.dto.shop.ShopProductResponse;
-import as.r_petals.entities.Product;
-import as.r_petals.entities.ShopProduct;
-import as.r_petals.entities.Shops;
-import as.r_petals.entities.SubCategory;
+import as.r_petals.entities.*;
 import as.r_petals.exception.BadRequestException;
 import as.r_petals.exception.ConflictException;
 import as.r_petals.exception.ResourceNotFoundException;
-import as.r_petals.repository.ProductRepository;
-import as.r_petals.repository.ShopProductRepository;
-import as.r_petals.repository.ShopRepository;
-import as.r_petals.repository.SubCategoryRepository;
+import as.r_petals.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -32,29 +26,43 @@ public class ShopProductService {
     private ProductRepository productRepository;
     @Autowired
     private SubCategoryRepository subCategoryRepository;
+    @Autowired
+    private UserRepository userRepository;
 
     public ApiResponse<ShopProductResponse> addProduct(ShopProductRequest request) {
-        // Current logged-in user
+
+        // JWT se mobile number
         String mobileNumber = getCurrentUser();
-        // Find his shop
-        Shops shop = shopRepository.findByUserId(mobileNumber).orElseThrow(() -> new ResourceNotFoundException("Shop not found"));
-        // Find Product
+
+        // Mobile number se current user
+        Users user = userRepository.findByMobileNumber(mobileNumber).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // User ID se shop
+        Shops shop = shopRepository.findByUserId(user.getId()).orElseThrow(() -> new ResourceNotFoundException("Shop not found for current user"));
+
+        // Shop active check
+        if (!shop.isActive()) {throw new BadRequestException("Shop is not active");}
+
+        // Product find
         Product product = productRepository.findById(request.getProductId()).orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-        // Same shop + same product already exists?
+
+        // Duplicate check
         if (shopProductRepository.existsByShopIdAndProductId(shop.getId(), product.getId())) {
             throw new ConflictException("Product already added to your shop");
         }
 
-        // Product → SubCategory
-        String subCategoryId = product.getSubCategoryId();
-        SubCategory subCategory = subCategoryRepository.findById(subCategoryId).orElseThrow(() -> new ResourceNotFoundException("SubCategory not found"));
+        // Product -> SubCategory
+        SubCategory subCategory = subCategoryRepository.findById(product.getSubCategoryId()).orElseThrow(() ->
+                new ResourceNotFoundException("SubCategory not found"));
 
-        // Create mapping
+        // Create ShopProduct
         ShopProduct shopProduct = new ShopProduct();
+
         shopProduct.setShopId(shop.getId());
         shopProduct.setProductId(product.getId());
-        shopProduct.setSubCategoryId(subCategoryId);
+        shopProduct.setSubCategoryId(subCategory.getId());
         shopProduct.setCategoryId(subCategory.getCategoryId());
+
         // Save
         ShopProduct saved = shopProductRepository.save(shopProduct);
 

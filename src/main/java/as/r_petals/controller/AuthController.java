@@ -24,11 +24,7 @@ public class AuthController {
     public ResponseEntity<ApiResponse<String>> sendOtp(
             @Valid @RequestBody SendOtpRequest request) {
 
-        return ResponseEntity.ok(
-                authService.sendOtp(
-                        request.getMobileNumber()
-                )
-        );
+        return ResponseEntity.ok(authService.sendOtp(request.getMobileNumber()));
     }
 
     @PostMapping("/verify-otp")
@@ -36,8 +32,7 @@ public class AuthController {
             @Valid @RequestBody VerifyOtpRequest request) {
 
         return ResponseEntity.ok(
-                authService.verifyOtp(
-                        request.getMobileNumber(),
+                authService.verifyOtp(request.getMobileNumber(),
                         request.getOtp()
                 )
         );

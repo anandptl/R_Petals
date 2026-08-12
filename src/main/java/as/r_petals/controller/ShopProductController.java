@@ -27,7 +27,6 @@ public class ShopProductController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<ShopProductResponse>>> getMyShopProducts() {
-
         return ResponseEntity.ok(shopProductService.getMyShopProducts());
     }
 

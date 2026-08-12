@@ -13,8 +13,6 @@ public class Category {
 
     private String categoryName;
 
-    private String categoryImage;
-
     private boolean active = true;
 
     private LocalDateTime createdAt;
@@ -38,17 +36,7 @@ public class Category {
         return categoryName;
     }
 
-    public void setCategoryName(String categoryName) {
-        this.categoryName = categoryName;
-    }
-
-    public String getCategoryImage() {
-        return categoryImage;
-    }
-
-    public void setCategoryImage(String categoryImage) {
-        this.categoryImage = categoryImage;
-    }
+    public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
 
     public boolean isActive() {
         return active;

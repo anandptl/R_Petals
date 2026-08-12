@@ -15,6 +15,8 @@ public class SubCategory {
 
     private String subCategoryName;
 
+    private String subCategoryImage;
+
     private boolean active = true;
 
     private LocalDateTime createdAt;
@@ -24,7 +26,6 @@ public class SubCategory {
     public SubCategory() {
     }
 //  getter & setter......
-
 
     public String getId() {
         return id;
@@ -49,6 +50,10 @@ public class SubCategory {
     public void setSubCategoryName(String subCategoryName) {
         this.subCategoryName = subCategoryName;
     }
+
+    public String getSubCategoryImage() {return subCategoryImage;}
+
+    public void setSubCategoryImage(String subCategoryImage){ this.subCategoryImage = subCategoryImage;}
 
     public boolean isActive() {
         return active;
