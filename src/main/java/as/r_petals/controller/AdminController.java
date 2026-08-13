@@ -5,12 +5,15 @@ import as.r_petals.dto.common.ApiResponse;
 import as.r_petals.dto.product.ProductResponse;
 import as.r_petals.dto.product.ProductUpdateRequest;
 import as.r_petals.dto.shop.ShopResponse;
+import as.r_petals.exception.BadRequestException;
 import as.r_petals.service.ProductService;
 import as.r_petals.service.ShopService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Valid;
+import jakarta.validation.Validator;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/admin")
@@ -26,21 +30,20 @@ public class AdminController {
 
     private final ShopService shopService;
     private final ProductService productService;
+    private final Validator validator;
 
-    public AdminController(ShopService shopService, ProductService productService) {
+    public AdminController(ShopService shopService, ProductService productService, Validator validator) {
         this.shopService = shopService;
         this.productService = productService;
+        this.validator = validator;
     }
 
     // APPROVE SHOP
 
     @PutMapping("/approve/{shopId}")
     public ResponseEntity<ApiResponse<ShopResponse>> approveShop(@PathVariable String shopId) {
-
         return ResponseEntity.ok(ApiResponse.success("Shop approved successfully", shopService.approveShop(shopId)));
     }
-
-    // CREATE PRODUCT + MULTIPLE IMAGES
 
     @PostMapping(value = "/add-product", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<ProductResponse>> addFullProduct(
@@ -52,6 +55,12 @@ public class AdminController {
         objectMapper.registerModule(new JavaTimeModule());
 
         FullProductRequest request = objectMapper.readValue(productJson, FullProductRequest.class);
+
+        Set<ConstraintViolation<FullProductRequest>> violations = validator.validate(request);
+        if (!violations.isEmpty()) {
+            String message = violations.iterator().next().getMessage();
+            throw new BadRequestException(message);
+        }
 
         ProductResponse response = productService.createFullProduct(request, images);
 
