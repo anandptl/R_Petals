@@ -25,18 +25,15 @@ public class AuthService {
     @Autowired
     private SmsService smsService;
 
-    @Value("${app.otp.dev-mode:false}")
-    private boolean otpDevMode;
-
     public ApiResponse<String> sendOtp(String mobileNumber) {
         String otp = otpService.generateOtp(mobileNumber, OtpType.MOBILE);
-        if (otpDevMode) {
 
-            return ApiResponse.success(
-                    "OTP generated successfully (DEV MODE)",
-                    otp
-            );
-        }
+        // OTP console mein hamesha dikhe
+        System.out.println("=================================");
+        System.out.println("Mobile Number : " + mobileNumber);
+        System.out.println("OTP           : " + otp);
+        System.out.println("=================================");
+
         try {
             smsService.sendOtps(mobileNumber, otp);
         } catch (RuntimeException ex) {
@@ -48,6 +45,7 @@ public class AuthService {
 
 
     public ApiResponse<LoginResponse> verifyOtp(String mobileNumber, String otp) {
+
         if (!otpService.verifyOtp(mobileNumber, otp, OtpType.MOBILE)) {
             throw new BadRequestException("Invalid or expired OTP");
         }

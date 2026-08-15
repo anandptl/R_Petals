@@ -48,6 +48,8 @@ public class Shops {
 
     private boolean active = false;
 
+    private boolean todayActive = false;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
@@ -184,4 +186,8 @@ public class Shops {
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
+
+    public boolean isTodayActive() {return todayActive;}
+
+    public void setTodayActive(boolean todayActive) {this.todayActive = todayActive;}
 }

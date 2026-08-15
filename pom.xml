@@ -85,17 +85,7 @@
         </dependency>
 
         <!--sms -->
-        <dependency>
-            <groupId>com.google.firebase</groupId>
-            <artifactId>firebase-admin</artifactId>
-            <version>9.3.0</version>
-        </dependency>
 
-        <dependency>
-            <groupId>com.twilio.sdk</groupId>
-            <artifactId>twilio</artifactId>
-            <version>10.6.0</version>
-        </dependency>
 
         <!--java mail sender -->
         <dependency>
