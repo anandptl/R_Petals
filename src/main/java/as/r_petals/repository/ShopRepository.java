@@ -17,5 +17,8 @@ public interface ShopRepository extends MongoRepository<Shops, String> {
 
     List<Shops> findByStatus(ShopStatus status);
 
+//    Admin dashbord ke liye
+    long countByStatus(ShopStatus status);
+
 
 }

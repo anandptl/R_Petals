@@ -25,6 +25,17 @@ public class ShopController {
         this.shopService = shopService;
     }
 
+    @PutMapping("/today-active")
+    public ResponseEntity<ApiResponse<ShopResponse>> updateTodayActive(
+            @RequestParam boolean active) {
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Shop today's active status updated successfully",
+                        shopService.updateTodayActive(active)
+                )
+        );
+    }
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<ShopResponse>> registerShop(@Valid @RequestBody ShopRegistrationRequest request) {
@@ -33,19 +44,11 @@ public class ShopController {
                         shopService.registerShop(request)));
     }
 
-
-
     @PostMapping("/product/add")
     public ResponseEntity<ApiResponse<ShopProductResponse>> addProduct(@Valid @RequestBody ShopProductRequest request) {
 
         return ResponseEntity.status(HttpStatus.CREATED).body( shopProductService.addProduct(request));
     }
-
-//    @GetMapping
-//    public ResponseEntity<ApiResponse<List<ShopProductResponse>>> getMyShopProducts() {
-//
-//        return ResponseEntity.ok(shopProductService.getMyShopProducts());
-//    }
 
     @DeleteMapping("/{productId}")
     public ResponseEntity<ApiResponse<Void>>removeProduct(@PathVariable String productId) {
