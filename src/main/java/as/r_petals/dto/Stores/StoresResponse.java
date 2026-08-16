@@ -1,45 +1,32 @@
-package as.r_petals.dto.shop;
+package as.r_petals.dto.Stores;
 
 import as.r_petals.entities.Shops;
-import as.r_petals.enums.ShopStatus;
 
 import java.time.LocalDateTime;
 
-public class ShopResponse {
+public class StoresResponse {
     private String id;
-    private String shopName;
-    private String shopkeeperName;
-    private String gstNumber;
     private String address;
     private String city;
     private String state;
     private String pincode;
     private String latitude;
     private String longitude;
-    private String shopImage;
-    private ShopStatus status;
-    private boolean active;
     private boolean todayActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public ShopResponse() {
+    public StoresResponse() {
     }
 
-    public ShopResponse(Shops shop) {
+    public StoresResponse(Shops shop) {
         id = shop.getId();
-        shopName = shop.getShopName();
-        shopkeeperName = shop.getShopkeeperName();
-        gstNumber = shop.getGstNumber();
         address = shop.getAddress();
         city = shop.getCity();
         state = shop.getState();
         pincode = shop.getPincode();
         latitude = shop.getLatitude();
         longitude = shop.getLongitude();
-        shopImage = shop.getShopImage();
-        status = shop.getStatus();
-        active = shop.isActive();
         todayActive = shop.isTodayActive();
         createdAt = shop.getCreatedAt();
         updatedAt = shop.getUpdatedAt();
@@ -47,18 +34,6 @@ public class ShopResponse {
 
     public String getId() {
         return id;
-    }
-
-    public String getShopName() {
-        return shopName;
-    }
-
-    public String getShopkeeperName() {
-        return shopkeeperName;
-    }
-
-    public String getGstNumber() {
-        return gstNumber;
     }
 
     public String getAddress() {
@@ -83,18 +58,6 @@ public class ShopResponse {
 
     public String getLongitude() {
         return longitude;
-    }
-
-    public String getShopImage() {
-        return shopImage;
-    }
-
-    public ShopStatus getStatus() {
-        return status;
-    }
-
-    public boolean isActive() {
-        return active;
     }
 
     public boolean isTodayActive() {

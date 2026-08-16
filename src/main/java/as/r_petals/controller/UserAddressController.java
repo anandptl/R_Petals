@@ -38,10 +38,4 @@ public class UserAddressController {
         addressService.setDefaultAddress(addressId);
         return ResponseEntity.ok(ApiResponse.success("Default address updated successfully"));
     }
-
-//    @DeleteMapping("/{addressId}")
-//    public ResponseEntity<ApiResponse<Void>> deleteAddress(@PathVariable String addressId) {
-//        addressService.deleteAddress(addressId);
-//        return ResponseEntity.ok(ApiResponse.success("Address deleted successfully"));
-//    }
 }

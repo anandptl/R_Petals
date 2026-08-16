@@ -29,23 +29,11 @@ public class CorsConfig {
                         "OPTIONS"
                 )
         );
-        config.setAllowedHeaders(
-                List.of(
-                        "Authorization",
-                        "Content-Type",
-                        "Accept"
-                )
-        );
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
 
-        config.setExposedHeaders(
-                List.of(
-                        "Authorization"
-                )
-        );
+        config.setExposedHeaders(List.of("Authorization"));
 
-        config.setAllowedHeaders(
-                List.of("*")
-        );
+        config.setAllowedHeaders(List.of("*"));
 
         config.setAllowCredentials(true);
 

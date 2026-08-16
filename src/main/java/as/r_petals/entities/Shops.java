@@ -6,8 +6,6 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 
-import as.r_petals.enums.ShopStatus;
-
 @Document(collection = "shops")
 public class Shops {
 
@@ -17,15 +15,6 @@ public class Shops {
     // User ID of Shopkeeper
     @Indexed(unique = true)
     private String userId;
-
-    // Shop Details
-    private String shopName;
-
-    private String shopkeeperName;
-
-    // Optional
-    private String gstNumber;
-
     // Location
     private String address;
 
@@ -38,15 +27,6 @@ public class Shops {
     private String latitude;
 
     private String longitude;
-
-    // Shop Image / Logo
-    private String shopImage;
-
-    // Verification
-    // PENDING | APPROVED | REJECTED
-    private ShopStatus status = ShopStatus.PENDING;
-
-    private boolean active = false;
 
     private boolean todayActive = false;
 
@@ -73,30 +53,6 @@ public class Shops {
 
     public void setUserId(String userId) {
         this.userId = userId;
-    }
-
-    public String getShopName() {
-        return shopName;
-    }
-
-    public void setShopName(String shopName) {
-        this.shopName = shopName;
-    }
-
-    public String getShopkeeperName() {
-        return shopkeeperName;
-    }
-
-    public void setShopkeeperName(String shopkeeperName) {
-        this.shopkeeperName = shopkeeperName;
-    }
-
-    public String getGstNumber() {
-        return gstNumber;
-    }
-
-    public void setGstNumber(String gstNumber) {
-        this.gstNumber = gstNumber;
     }
 
     public String getAddress() {
@@ -145,30 +101,6 @@ public class Shops {
 
     public void setLongitude(String longitude) {
         this.longitude = longitude;
-    }
-
-    public String getShopImage() {
-        return shopImage;
-    }
-
-    public void setShopImage(String shopImage) {
-        this.shopImage = shopImage;
-    }
-
-    public ShopStatus getStatus() {
-        return status;
-    }
-
-    public void  setStatus(ShopStatus status) {
-        this.status = status;
-    }
-
-    public boolean isActive() {
-        return active;
-    }
-
-    public void setActive(boolean active) {
-        this.active = active;
     }
 
     public LocalDateTime getCreatedAt() {

@@ -1,13 +1,13 @@
 package as.r_petals.dto.admin;
 
 import as.r_petals.dto.product.ProductResponse;
-import as.r_petals.dto.shop.ShopResponse;
+import as.r_petals.dto.Stores.StoresResponse;
 
 import java.util.List;
 
 public class AdminShopDetailResponse {
 
-    private ShopResponse shop;
+    private StoresResponse shop;
 
     private UserInfo user;
 
@@ -16,13 +16,13 @@ public class AdminShopDetailResponse {
     public AdminShopDetailResponse() {
     }
 
-    public AdminShopDetailResponse(ShopResponse shop, UserInfo user, List<ProductResponse> products) {
+    public AdminShopDetailResponse(StoresResponse shop, UserInfo user, List<ProductResponse> products) {
         this.shop = shop;
         this.user = user;
         this.products = products;
     }
 
-    public ShopResponse getShop() {
+    public StoresResponse getShop() {
         return shop;
     }
 

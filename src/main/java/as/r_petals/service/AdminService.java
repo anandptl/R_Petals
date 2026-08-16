@@ -1,24 +1,21 @@
 package as.r_petals.service;
 
 import as.r_petals.dto.admin.AdminDashboardResponse;
-import as.r_petals.enums.ShopStatus;
 import as.r_petals.repository.ProductRepository;
-import as.r_petals.repository.ShopRepository;
+import as.r_petals.repository.StoresRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AdminService {
     @Autowired
-    private ShopRepository shopRepository;
+    private StoresRepository storesRepository;
     @Autowired
     private ProductRepository productRepository;
 
     public AdminDashboardResponse getDashboardStats() {
 
-        long totalShops = shopRepository.count();
-
-        long pendingApprovals = shopRepository.countByStatus(ShopStatus.PENDING);
+        long totalShops = storesRepository.count();
 
         long totalProducts = productRepository.count();
 
@@ -26,7 +23,6 @@ public class AdminService {
 
         return new AdminDashboardResponse(
                 totalShops,
-                pendingApprovals,
                 totalProducts,
                 totalOrders
         );

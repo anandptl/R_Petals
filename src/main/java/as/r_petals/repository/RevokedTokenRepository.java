@@ -6,6 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface RevokedTokenRepository extends MongoRepository<RevokedToken, String> {
-
     boolean existsById(String jti);
 }

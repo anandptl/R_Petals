@@ -2,30 +2,50 @@ package as.r_petals.controller;
 
 import as.r_petals.dto.common.ApiResponse;
 import as.r_petals.service.AuthService;
-import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api")
 public class MianController {
+
     @Autowired
     private AuthService authService;
 
+    @Value("${auth.cookie.secure:false}")
+    private boolean secureCookie;
+
+    @Value("${auth.cookie.same-site:Lax}")
+    private String sameSite;
+
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<String>> logout(
-            @RequestHeader(value = "Authorization", required = false)
-            String authorization) {
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @CookieValue(value = AuthController.REFRESH_COOKIE_NAME, required = false) String refreshToken,
+            HttpServletResponse response) {
 
-        if (authorization == null || !authorization.startsWith("Bearer ")) {
+        String accessToken = null;
 
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Bearer token is required"));
+        if (authorization != null && authorization.startsWith("Bearer ")) {
+            accessToken = authorization.substring(7);
         }
 
-        String token = authorization.substring(7);
+        authService.logout(accessToken, refreshToken);
 
-        return ResponseEntity.ok(authService.logout(token));
+        ResponseCookie clearCookie = ResponseCookie.from(AuthController.REFRESH_COOKIE_NAME, "")
+                .httpOnly(true)
+                .secure(secureCookie)
+                .sameSite(sameSite)
+                .path("/")
+                .maxAge(0)
+                .build();
+
+        response.addHeader("Set-Cookie", clearCookie.toString());
+
+        return ResponseEntity.ok(ApiResponse.success("Logout successful"));
     }
 }

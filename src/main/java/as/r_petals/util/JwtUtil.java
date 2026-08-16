@@ -18,32 +18,18 @@ public class JwtUtil {
     @Value("${jwt.secret}")
     private String secretKey;
 
-    private static final long USER_EXPIRATION = 1000L * 60 * 60 * 24 * 7; // 7 days
-
-    private static final long SHOPKEEPER_ADMIN_EXPIRATION = 1000L * 60 * 60 * 24; // 1 day
+    // Access token is intentionally short-lived for all roles.
+    private static final long ACCESS_TOKEN_EXPIRATION = 1000L * 60 * 15; // 15 minutes
 
     private SecretKey getKey() {
         return Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
     }
 
     public String generateToken(String mobileNumber, String role) {
-
-        long expiration;
-        Role userRole = Role.valueOf(role);
-        if (userRole == Role.USER) {
-            expiration = USER_EXPIRATION;
-        } else {
-            // SHOPKEEPER + ADMIN
-            expiration = SHOPKEEPER_ADMIN_EXPIRATION;
-        }
-
         Date issuedAt = new Date();
-
-        Date expirationDate = new Date(System.currentTimeMillis() + expiration);
+        Date expirationDate = new Date(System.currentTimeMillis() + ACCESS_TOKEN_EXPIRATION);
 
         return Jwts.builder()
-
-                // Unique token ID
                 .id(UUID.randomUUID().toString())
                 .subject(mobileNumber)
                 .claim("role", role)
@@ -70,18 +56,15 @@ public class JwtUtil {
     }
 
     public boolean validateToken(String token) {
-
         try {
             parseClaims(token);
             return true;
-
         } catch (Exception ex) {
             return false;
         }
     }
 
     private Claims parseClaims(String token) {
-
         return Jwts.parser()
                 .verifyWith(getKey())
                 .build()
