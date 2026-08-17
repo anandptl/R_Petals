@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 import as.r_petals.dto.Stores.StoresRegistrationRequest;
 import as.r_petals.dto.Stores.StoresResponse;
 import as.r_petals.dto.Stores.StoresUpdateRequest;
-import as.r_petals.entities.Shops;
+import as.r_petals.entities.Stores;
 import as.r_petals.entities.Users;
 import as.r_petals.enums.Role;
 import as.r_petals.exception.BadRequestException;
@@ -18,18 +18,30 @@ import as.r_petals.exception.ResourceNotFoundException;
 import as.r_petals.repository.ProductRepository;
 import as.r_petals.repository.StoresRepository;
 import as.r_petals.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.client.RestTemplate;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 @Service
 public class StoresService {
 
-    @Autowired
-    private StoresRepository storesRepository;
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private CurrentUserService currentUserService;
-    @Autowired
-    private ProductRepository productRepository;
+    private final StoresRepository storesRepository;
+    private final UserRepository userRepository;
+    private final CurrentUserService currentUserService;
+    private final ProductRepository productRepository;
+
+
+
+    public StoresService(StoresRepository storesRepository, UserRepository userRepository,
+                         CurrentUserService currentUserService, ProductRepository productRepository) {
+        this.storesRepository = storesRepository;
+        this.userRepository = userRepository;
+        this.currentUserService = currentUserService;
+        this.productRepository = productRepository;
+    }
 
     // register shop by the shopkeeper.....
 
@@ -45,7 +57,7 @@ public class StoresService {
             throw new ConflictException("You have already applied for shop registration");
         }
 
-        Shops shop = new Shops();
+        Stores shop = new Stores();
         shop.setUserId(user.getId());
         shop.setAddress(request.getAddress().trim());
         shop.setCity(request.getCity().trim());
@@ -57,7 +69,7 @@ public class StoresService {
         shop.setCreatedAt(LocalDateTime.now());
         shop.setUpdatedAt(LocalDateTime.now());
 
-        Shops savedShop = storesRepository.save(shop);
+        Stores savedShop = storesRepository.save(shop);
 
         return new StoresResponse(savedShop);
     }
@@ -67,7 +79,7 @@ public class StoresService {
     public StoresResponse updateCurrentShop(StoresUpdateRequest request) {
 
         Users user = currentUserService.getCurrentUser();
-        Shops shop = storesRepository.findByUserId(user.getId()).orElseThrow(() -> new ResourceNotFoundException("Shop not found"));
+        Stores shop = storesRepository.findByUserId(user.getId()).orElseThrow(() -> new ResourceNotFoundException("Shop not found"));
 
         if (request.getAddress() != null) {shop.setAddress(request.getAddress().trim());}
         if (request.getCity() != null) {shop.setCity(request.getCity().trim());}
@@ -78,7 +90,7 @@ public class StoresService {
 
         shop.setUpdatedAt(LocalDateTime.now());
 
-        Shops savedShop = storesRepository.save(shop);
+        Stores savedShop = storesRepository.save(shop);
 
         return new StoresResponse(savedShop);
     }
@@ -90,14 +102,14 @@ public class StoresService {
 
         Users user = currentUserService.getCurrentUser();
 
-        Shops shop = storesRepository.findByUserId(user.getId()).orElseThrow(() -> new ResourceNotFoundException("Shop not found"));
+        Stores shop = storesRepository.findByUserId(user.getId()).orElseThrow(() -> new ResourceNotFoundException("Shop not found"));
 
         // Only approved + active shops can open today
 
 
         shop.setTodayActive(todayActive);
         shop.setUpdatedAt(LocalDateTime.now());
-        Shops savedShop = storesRepository.save(shop);
+        Stores savedShop = storesRepository.save(shop);
         return new StoresResponse(savedShop);
     }
 

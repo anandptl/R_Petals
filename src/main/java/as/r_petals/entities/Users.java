@@ -38,18 +38,18 @@ public class Users {
     private LocalDateTime updatedAt;
 
     @DBRef
-    private Shops shop;
+    private Stores shop;
 
     public Users() {
     }
 
     //    getter & setter...
 
-    public Shops getShop() {
+    public Stores getShop() {
         return shop;
     }
 
-    public void setShop(Shops shop) {
+    public void setShop(Stores shop) {
         this.shop = shop;
     }
 

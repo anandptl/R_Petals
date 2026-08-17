@@ -30,15 +30,9 @@ public class CorsConfig {
                 )
         );
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
-
-        config.setExposedHeaders(List.of("Authorization"));
-
         config.setAllowedHeaders(List.of("*"));
-
         config.setAllowCredentials(true);
-
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-
         source.registerCorsConfiguration("/**", config);
 
         return source;

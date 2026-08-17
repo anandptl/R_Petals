@@ -6,8 +6,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 
-@Document(collection = "shops")
-public class Shops {
+@Document(collection = "stores")
+public class Stores {
 
     @Id
     private String id;
@@ -15,6 +15,8 @@ public class Shops {
     // User ID of Shopkeeper
     @Indexed(unique = true)
     private String userId;
+    // Shop Details
+    private String shopName;
     // Location
     private String address;
 
@@ -34,7 +36,7 @@ public class Shops {
 
     private LocalDateTime updatedAt;
 
-    public Shops() {
+    public Stores() {
     }
 
     // Getters & Setters
@@ -54,6 +56,10 @@ public class Shops {
     public void setUserId(String userId) {
         this.userId = userId;
     }
+
+    public String getShopName() {return shopName;}
+
+    public void setShopName(String shopName) {this.shopName = shopName;}
 
     public String getAddress() {
         return address;

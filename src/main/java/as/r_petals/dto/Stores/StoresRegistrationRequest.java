@@ -5,6 +5,9 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public class StoresRegistrationRequest {
+    @NotBlank(message = "Name is required")
+    @Size(max = 200)
+    private String shopName;
     @NotBlank(message = "Address is required")
     @Size(max = 300)
     private String address;
@@ -18,6 +21,8 @@ public class StoresRegistrationRequest {
     private String latitude;
     private String longitude;
     public StoresRegistrationRequest() {}
+
+    public String getName(){return shopName;} public void setName(String v){address=v;}
     public String getAddress(){return address;} public void setAddress(String v){address=v;}
     public String getCity(){return city;} public void setCity(String v){city=v;}
     public String getState(){return state;} public void setState(String v){state=v;}

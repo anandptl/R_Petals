@@ -5,6 +5,7 @@ import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Size;
 
 public class StoresUpdateRequest {
+    @Size(max = 200) private String shopName;
     @Size(max = 300) private String address;
     private String city;
     private String state;
@@ -12,6 +13,8 @@ public class StoresUpdateRequest {
     private String latitude;
     private String longitude;
     public StoresUpdateRequest() {}
+
+    public String getName(){return shopName;} public void setName(String v){address=v;}
     public String getAddress(){return address;} public void setAddress(String v){address=v;}
     public String getCity(){return city;} public void setCity(String v){city=v;}
     public String getState(){return state;} public void setState(String v){state=v;}

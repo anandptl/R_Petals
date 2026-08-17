@@ -1,11 +1,12 @@
 package as.r_petals.dto.Stores;
 
-import as.r_petals.entities.Shops;
+import as.r_petals.entities.Stores;
 
 import java.time.LocalDateTime;
 
 public class StoresResponse {
     private String id;
+    private String shopName;
     private String address;
     private String city;
     private String state;
@@ -19,22 +20,25 @@ public class StoresResponse {
     public StoresResponse() {
     }
 
-    public StoresResponse(Shops shop) {
-        id = shop.getId();
-        address = shop.getAddress();
-        city = shop.getCity();
-        state = shop.getState();
-        pincode = shop.getPincode();
-        latitude = shop.getLatitude();
-        longitude = shop.getLongitude();
-        todayActive = shop.isTodayActive();
-        createdAt = shop.getCreatedAt();
-        updatedAt = shop.getUpdatedAt();
+    public StoresResponse(Stores store) {
+        id = store.getId();
+        shopName = store.getShopName();
+        address = store.getAddress();
+        city = store.getCity();
+        state = store.getState();
+        pincode = store.getPincode();
+        latitude = store.getLatitude();
+        longitude = store.getLongitude();
+        todayActive = store.isTodayActive();
+        createdAt = store.getCreatedAt();
+        updatedAt = store.getUpdatedAt();
     }
 
     public String getId() {
         return id;
     }
+
+    public String getShopName() {return shopName;}
 
     public String getAddress() {
         return address;

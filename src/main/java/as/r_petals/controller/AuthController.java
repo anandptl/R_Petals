@@ -73,13 +73,22 @@ public class AuthController {
             String refreshToken,
             long maxAgeSeconds) {
 
-        ResponseCookie cookie = ResponseCookie.from(REFRESH_COOKIE_NAME, refreshToken)
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(REFRESH_COOKIE_NAME, refreshToken)
                 .httpOnly(true)
                 .secure(secureCookie)
                 .sameSite(sameSite)
-                .path("/")
-                .maxAge(maxAgeSeconds)
-                .build();
+                .path("/");
+
+        String role = null;
+        if (refreshToken != null) {
+            role = authService.getRoleFromRefreshToken(refreshToken);
+        }
+
+        if ("USER".equals(role)) {
+            builder.maxAge(maxAgeSeconds);
+        }
+
+        ResponseCookie cookie = builder.build();
 
         response.addHeader("Set-Cookie", cookie.toString());
     }

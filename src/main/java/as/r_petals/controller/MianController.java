@@ -9,6 +9,8 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import static as.r_petals.controller.AuthController.REFRESH_COOKIE_NAME;
+
 @RestController
 @RequestMapping("/api")
 public class MianController {
@@ -25,7 +27,10 @@ public class MianController {
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<String>> logout(
             @RequestHeader(value = "Authorization", required = false) String authorization,
-            @CookieValue(value = AuthController.REFRESH_COOKIE_NAME, required = false) String refreshToken,
+            @CookieValue(
+                    value = REFRESH_COOKIE_NAME,
+                    required = false
+            ) String refreshToken,
             HttpServletResponse response) {
 
         String accessToken = null;
@@ -34,9 +39,11 @@ public class MianController {
             accessToken = authorization.substring(7);
         }
 
-        authService.logout(accessToken, refreshToken);
+        ApiResponse<String> result = authService.logout(accessToken, refreshToken);
 
-        ResponseCookie clearCookie = ResponseCookie.from(AuthController.REFRESH_COOKIE_NAME, "")
+        // Clear refresh-token cookie
+        ResponseCookie clearCookie = ResponseCookie
+                .from(REFRESH_COOKIE_NAME, "")
                 .httpOnly(true)
                 .secure(secureCookie)
                 .sameSite(sameSite)
@@ -44,8 +51,11 @@ public class MianController {
                 .maxAge(0)
                 .build();
 
-        response.addHeader("Set-Cookie", clearCookie.toString());
+        response.addHeader(
+                "Set-Cookie",
+                clearCookie.toString()
+        );
 
-        return ResponseEntity.ok(ApiResponse.success("Logout successful"));
+        return ResponseEntity.ok(result);
     }
 }

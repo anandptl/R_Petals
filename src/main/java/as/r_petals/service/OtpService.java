@@ -1,31 +1,26 @@
 package as.r_petals.service;
 
-import as.r_petals.config.PasswordConfig;
 import as.r_petals.entities.Otp;
 import as.r_petals.enums.OtpType;
 import as.r_petals.exception.BadRequestException;
 import as.r_petals.repository.OtpRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 
 @Service
 public class OtpService {
 
-    @Autowired
-    private OtpRepository otpRepository;
-
-    @Autowired
-    private PasswordConfig passwordConfig;
-
+    private final OtpRepository otpRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public OtpService(PasswordEncoder passwordEncoder) {
+    public OtpService(
+            OtpRepository otpRepository,
+            PasswordEncoder passwordEncoder) {
+
+        this.otpRepository = otpRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -83,40 +78,44 @@ public class OtpService {
 
     // Verify OTP
     public boolean verifyOtp(String identifier, String otp, OtpType type) {
-        String normalizedIdentifier = normalize(identifier, type);
-        Otp entity = otpRepository
-                .findByIdentifierAndType(normalizedIdentifier, type)
-                .orElse(null);
+        try {
+            String normalizedIdentifier = normalize(identifier, type);
+            Otp entity = otpRepository
+                    .findByIdentifierAndType(normalizedIdentifier, type)
+                    .orElse(null);
 
-        if (entity == null || entity.getOtp() == null) {
-            return false;
-        }
-
-        if (entity.getExpiryTime() == null || !LocalDateTime.now().isBefore(entity.getExpiryTime())) {
-            invalidate(normalizedIdentifier, type);
-            return false;
-        }
-
-        if (entity.getAttempts() >= MAX_ATTEMPTS) {
-            invalidate(normalizedIdentifier, type);
-            return false;
-        }
-
-        if (!passwordEncoder.matches(otp, entity.getOtp())) {
-            entity.setAttempts(entity.getAttempts() + 1);
-            if (entity.getAttempts() >= MAX_ATTEMPTS) {
-                entity.setOtp(null);
+            if (entity == null || entity.getOtp() == null) {
+                return false;
             }
-            otpRepository.save(entity);
-            return false;
-        }
 
-        // Keep requestCount/windowStart so the hourly rate limit cannot be reset by a successful OTP.
-        entity.setOtp(null);
-        entity.setAttempts(MAX_ATTEMPTS);
-        entity.setExpiryTime(LocalDateTime.now());
-        otpRepository.save(entity);
-        return true;
+            if (entity.getExpiryTime() == null || !LocalDateTime.now().isBefore(entity.getExpiryTime())) {
+                invalidate(normalizedIdentifier, type);
+                return false;
+            }
+
+            if (entity.getAttempts() >= MAX_ATTEMPTS) {
+                invalidate(normalizedIdentifier, type);
+                return false;
+            }
+
+            if (!passwordEncoder.matches(otp, entity.getOtp())) {
+                entity.setAttempts(entity.getAttempts() + 1);
+                if (entity.getAttempts() >= MAX_ATTEMPTS) {
+                    entity.setOtp(null);
+                }
+                otpRepository.save(entity);
+                return false;
+            }
+
+            // Keep requestCount/windowStart so the hourly rate limit cannot be reset by a successful OTP.
+            entity.setOtp(null);
+            entity.setAttempts(MAX_ATTEMPTS);
+            entity.setExpiryTime(LocalDateTime.now());
+            otpRepository.save(entity);
+            return true;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void invalidate(String identifier, OtpType type) {
@@ -137,5 +136,18 @@ public class OtpService {
         }
         String value = identifier.trim();
         return type == OtpType.EMAIL ? value.toLowerCase() : value;
+    }
+
+    public void resetCooldown(String identifier, OtpType type) {
+        String normalizedIdentifier = normalize(identifier, type);
+
+        otpRepository.findByIdentifierAndType(normalizedIdentifier, type)
+                .ifPresent(entity -> {
+                    entity.setCreatedAt(null);
+                    entity.setOtp(null);
+                    entity.setAttempts(0);
+                    entity.setExpiryTime(null);
+                    otpRepository.save(entity);
+                });
     }
 }

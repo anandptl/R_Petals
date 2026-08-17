@@ -14,7 +14,6 @@ import as.r_petals.repository.RefreshTokenRepository;
 import as.r_petals.repository.RevokedTokenRepository;
 import as.r_petals.util.JwtUtil;
 import as.r_petals.util.RefreshTokenUtil;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -25,24 +24,28 @@ import java.util.Optional;
 @Service
 public class AuthService {
 
-    // USER: 45 days, ADMIN/SHOPKEEPER: 1 day
+    // Refresh token server lifetime
     private static final long USER_REFRESH_TOKEN_SECONDS = 45L * 24 * 60 * 60;
-    private static final long ADMIN_SHOPKEEPER_REFRESH_TOKEN_SECONDS = 24L * 60 * 60;
+    private static final long ADMIN_REFRESH_TOKEN_SECONDS = 12L * 60 * 60;
+    private static final long SHOPKEEPER_REFRESH_TOKEN_SECONDS = 24L * 60 * 60;
 
-    @Autowired
-    private OtpService otpService;
-    @Autowired
-    private UserService userService;
-    @Autowired
-    private JwtUtil jwtUtil;
-    @Autowired
-    private RefreshTokenUtil refreshTokenUtil;
-    @Autowired
-    private SmsService smsService;
-    @Autowired
-    private RevokedTokenRepository revokedTokenRepository;
-    @Autowired
-    private RefreshTokenRepository refreshTokenRepository;
+    private final OtpService otpService;
+    private final UserService userService;
+    private final JwtUtil jwtUtil;
+    private final RefreshTokenUtil refreshTokenUtil;
+    private final SmsService smsService;
+    private final RevokedTokenRepository revokedTokenRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
+
+    public AuthService(OtpService otpService, UserService userService, JwtUtil jwtUtil, RefreshTokenUtil refreshTokenUtil, RevokedTokenRepository revokedTokenRepository, RefreshTokenRepository refreshTokenRepository, SmsService smsService){
+        this.otpService = otpService;
+        this.userService = userService;
+        this.jwtUtil = jwtUtil;
+        this.refreshTokenRepository = refreshTokenRepository;
+        this.refreshTokenUtil = refreshTokenUtil;
+        this.smsService = smsService;
+        this.revokedTokenRepository = revokedTokenRepository;
+    }
 
     public ApiResponse<String> sendOtp(String mobileNumber) {
         String otp = otpService.generateOtp(mobileNumber, OtpType.MOBILE);
@@ -155,9 +158,7 @@ public class AuthService {
                 Date expiration = jwtUtil.extractExpiration(accessToken);
 
                 if (jti != null && expiration != null && !revokedTokenRepository.existsById(jti)) {
-                    revokedTokenRepository.save(
-                            new RevokedToken(jti, expiration.toInstant())
-                    );
+                    revokedTokenRepository.save(new RevokedToken(jti, expiration.toInstant()));
                 }
             } catch (Exception ignored) {
                 // An already-expired/invalid access token does not prevent refresh-token logout.
@@ -167,7 +168,10 @@ public class AuthService {
         // Revoke refresh token server-side. Only its hash is stored in MongoDB.
         if (rawRefreshToken != null && !rawRefreshToken.isBlank()) {
             String tokenHash = refreshTokenUtil.hash(rawRefreshToken);
+
             refreshTokenRepository.findById(tokenHash).ifPresent(token -> {
+                otpService.resetCooldown(token.getMobileNumber(), OtpType.MOBILE);
+
                 if (!token.isRevoked()) {
                     token.setRevoked(true);
                     token.setRevokedAt(Instant.now());
@@ -202,10 +206,23 @@ public class AuthService {
         return new RefreshTokenData(rawToken, maxAgeSeconds);
     }
 
+    public String getRoleFromRefreshToken(String rawRefreshToken) {
+        if (rawRefreshToken == null || rawRefreshToken.isBlank()) {
+            return null;
+        }
+
+        String tokenHash = refreshTokenUtil.hash(rawRefreshToken);
+        return refreshTokenRepository.findById(tokenHash)
+                .map(token -> token.getRole().name())
+                .orElse(null);
+    }
+
     public long refreshTokenLifetimeSeconds(Role role) {
-        return role == Role.USER
-                ? USER_REFRESH_TOKEN_SECONDS
-                : ADMIN_SHOPKEEPER_REFRESH_TOKEN_SECONDS;
+        return switch (role) {
+            case USER -> USER_REFRESH_TOKEN_SECONDS;
+            case SHOPKEEPER -> SHOPKEEPER_REFRESH_TOKEN_SECONDS;
+            case ADMIN -> ADMIN_REFRESH_TOKEN_SECONDS;
+        };
     }
 
     public record LoginResult(
