@@ -1,24 +1,50 @@
 package as.r_petals.dto.Stores;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-public class StoresRegistrationRequest {
+public class AdminStoresRegistrationRequest {
 
-    @NotBlank(message = "Name is required")
+    @NotBlank(message = "Shopkeeper name is required")
+    @Size(max = 200)
+    private String shopkeeperName;
+
+
+    @NotBlank(message = "Mobile number is required")
+    @Pattern(
+            regexp = "^[6-9][0-9]{9}$",
+            message = "Invalid mobile number"
+    )
+    private String mobile;
+
+
+    @Email(message = "Invalid email address")
+    private String email;
+
+
+    @NotBlank(message = "Shop name is required")
     @Size(max = 200)
     private String shopName;
+
+
+    @NotBlank(message = "Country is required")
+    private String country;
+
 
     @NotBlank(message = "Address is required")
     @Size(max = 300)
     private String address;
 
+
     @NotBlank(message = "City is required")
     private String city;
 
+
     @NotBlank(message = "State is required")
     private String state;
+
 
     @NotBlank(message = "Pincode is required")
     @Pattern(
@@ -27,12 +53,44 @@ public class StoresRegistrationRequest {
     )
     private String pincode;
 
+    @NotBlank(message = "Latitude is required")
     private String latitude;
+
+
+    @NotBlank(message = "Longitude is required")
     private String longitude;
 
-    public StoresRegistrationRequest() {}
 
-    // Shop name
+    public AdminStoresRegistrationRequest() {
+    }
+
+    public String getShopkeeperName() {
+        return shopkeeperName;
+    }
+
+    public void setShopkeeperName(String shopkeeperName) {
+        this.shopkeeperName = shopkeeperName;
+    }
+
+
+    public String getMobile() {
+        return mobile;
+    }
+
+    public void setMobile(String mobile) {
+        this.mobile = mobile;
+    }
+
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+
     public String getShopName() {
         return shopName;
     }
@@ -41,7 +99,16 @@ public class StoresRegistrationRequest {
         this.shopName = shopName;
     }
 
-    // Address
+
+    public String getCountry() {
+        return country;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
+    }
+
+
     public String getAddress() {
         return address;
     }
@@ -50,7 +117,7 @@ public class StoresRegistrationRequest {
         this.address = address;
     }
 
-    // City
+
     public String getCity() {
         return city;
     }
@@ -59,7 +126,7 @@ public class StoresRegistrationRequest {
         this.city = city;
     }
 
-    // State
+
     public String getState() {
         return state;
     }
@@ -68,7 +135,7 @@ public class StoresRegistrationRequest {
         this.state = state;
     }
 
-    // Pincode
+
     public String getPincode() {
         return pincode;
     }
@@ -77,7 +144,7 @@ public class StoresRegistrationRequest {
         this.pincode = pincode;
     }
 
-    // Latitude
+
     public String getLatitude() {
         return latitude;
     }
@@ -86,7 +153,7 @@ public class StoresRegistrationRequest {
         this.latitude = latitude;
     }
 
-    // Longitude
+
     public String getLongitude() {
         return longitude;
     }

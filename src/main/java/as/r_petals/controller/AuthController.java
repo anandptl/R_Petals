@@ -80,16 +80,11 @@ public class AuthController {
                 .path("/");
 
         String role = null;
-        if (refreshToken != null) {
-            role = authService.getRoleFromRefreshToken(refreshToken);
-        }
 
-        if ("USER".equals(role)) {
-            builder.maxAge(maxAgeSeconds);
-        }
+        if (refreshToken != null) {role = authService.getRoleFromRefreshToken(refreshToken);}
+        if (role != null) {builder.maxAge(maxAgeSeconds);}
 
         ResponseCookie cookie = builder.build();
-
         response.addHeader("Set-Cookie", cookie.toString());
     }
 }

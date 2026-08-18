@@ -1,37 +1,32 @@
 package as.r_petals.controller;
 
 import as.r_petals.dto.FullProductRequest;
+import as.r_petals.dto.Stores.StoresRegistrationRequest;
+import as.r_petals.dto.Stores.StoresResponse;
 import as.r_petals.dto.admin.AdminDashboardResponse;
 import as.r_petals.dto.common.ApiResponse;
 import as.r_petals.dto.product.ProductResponse;
 import as.r_petals.dto.product.ProductUpdateRequest;
-import as.r_petals.dto.Stores.StoresResponse;
-import as.r_petals.dto.Stores.GeocodeResponse;
 import as.r_petals.exception.BadRequestException;
 import as.r_petals.service.AdminService;
 import as.r_petals.service.ProductService;
 import as.r_petals.service.StoresService;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Valid;
 import jakarta.validation.Validator;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.util.UriComponentsBuilder;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import as.r_petals.dto.Stores.AdminStoresRegistrationRequest;
 
 import java.util.List;
 import java.util.Set;
@@ -44,88 +39,48 @@ public class AdminController {
     private final ProductService productService;
     private final Validator validator;
     private final AdminService adminService;
-    // Nominatim (OpenStreetMap) free geocoding API — koi API key nahi chahiye
-    private static final String NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
 
     public AdminController(StoresService storesService, ProductService productService, Validator validator, AdminService adminService) {
+
         this.storesService = storesService;
         this.productService = productService;
         this.validator = validator;
         this.adminService = adminService;
     }
 
-    //    Dashboard......
+    // Dashboard
     @GetMapping("/dashboard")
     public ResponseEntity<ApiResponse<AdminDashboardResponse>> getDashboard() {
-
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        "Admin dashboard data fetched successfully",
-                        adminService.getDashboardStats()
-                )
-        );
+        return ResponseEntity.ok(ApiResponse.success("Admin dashboard data fetched successfully", adminService.getDashboardStats()));
     }
 
-    // GET all shops
+    // Get all shops
     @GetMapping("/stores")
     public ResponseEntity<ApiResponse<List<StoresResponse>>> getAllShops() {
-
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        "All shops fetched successfully",
-                        storesService.getAllShopsForAdmin()
-                )
-        );
+        return ResponseEntity.ok(ApiResponse.success("All shops fetched successfully", storesService.getAllShopsForAdmin()));
     }
 
-    // GET latitude/longitude from address (used on "Get Location" button in Register Store page)
-    @GetMapping("/stores/geocode")
-    public ResponseEntity<ApiResponse<GeocodeResponse>> geocodeAddress(@RequestParam("address") String address) {
-
-        if (address == null || address.trim().isEmpty()) {
-            throw new BadRequestException("Address is required.");
-        }
-
-        String url = UriComponentsBuilder.fromHttpUrl(NOMINATIM_URL)
-                .queryParam("format", "json")
-                .queryParam("limit", 1)
-                .queryParam("q", address)
-                .toUriString();
-
-        HttpHeaders headers = new HttpHeaders();
-        // Nominatim usage policy ke liye User-Agent zaroori hai — apna app/email daal do
-        headers.set("User-Agent", "RPetalsApp/1.0 (contact@rpetals.com)");
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-
-        RestTemplate restTemplate = new RestTemplate();
-        ResponseEntity<List> result = restTemplate.exchange(url, HttpMethod.GET, entity, List.class);
-
-        List<Map<String, Object>> body = result.getBody();
-
-        if (body == null || body.isEmpty()) {
-            throw new BadRequestException("Location not found for this address.");
-        }
-
-        Map<String, Object> firstResult = body.get(0);
-        double latitude = Double.parseDouble(firstResult.get("lat").toString());
-        double longitude = Double.parseDouble(firstResult.get("lon").toString());
-
-        GeocodeResponse response = new GeocodeResponse(latitude, longitude);
-
-        return ResponseEntity.ok(
-                ApiResponse.success("Location found from the entered address", response)
-        );
+//    store status....
+    @GetMapping("/stores/status")
+    public ResponseEntity<?> getStoreStatus() {
+        return ResponseEntity.ok(adminService.getStoreStatus());
     }
 
+    // Register shop
+    @PostMapping("/register")
+    public ResponseEntity<ApiResponse<StoresResponse>> registerShop(@Valid @RequestBody AdminStoresRegistrationRequest request) {
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ApiResponse.success("Shopkeeper and store registered successfully", adminService.registerShopByAdmin(request)));
+    }
+
+    // Add product
     @PostMapping(value = "/add-product", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<ProductResponse>> addFullProduct(
-
-            @RequestPart("product") String productJson,
-            @RequestPart("images") List<MultipartFile> images) throws JsonProcessingException {
+    public ResponseEntity<ApiResponse<ProductResponse>> addFullProduct(@RequestPart("product") String productJson,
+                                                                       @RequestPart("images") List<MultipartFile> images) throws JsonProcessingException {
 
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
-
         FullProductRequest request = objectMapper.readValue(productJson, FullProductRequest.class);
 
         Set<ConstraintViolation<FullProductRequest>> violations = validator.validate(request);
@@ -139,32 +94,27 @@ public class AdminController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Product created successfully", response));
     }
 
-    // UPDATE PRODUCT
-
+    // Update product
     @PutMapping("/update/{productId}")
     public ResponseEntity<ApiResponse<ProductResponse>> updateProduct(@PathVariable String productId, @Valid @RequestBody ProductUpdateRequest request) {
-
         return ResponseEntity.ok(ApiResponse.success("Product updated successfully", productService.updateProduct(productId, request)));
     }
 
-    // DELETE PRODUCT
-
+    // Delete product
     @DeleteMapping("/delete/{productId}")
     public ResponseEntity<ApiResponse<Void>> deleteProduct(@PathVariable String productId) {
         productService.deleteProduct(productId);
         return ResponseEntity.ok(ApiResponse.success("Product deleted successfully"));
     }
 
-    // DELETE SUBCATEGORY
-
+    // Delete subcategory
     @DeleteMapping("/subcategory/{subCategoryId}")
     public ResponseEntity<ApiResponse<Void>> deleteSubCategory(@PathVariable String subCategoryId) {
         productService.deleteSubCategory(subCategoryId);
         return ResponseEntity.ok(ApiResponse.success("Subcategory deleted successfully"));
     }
 
-    // DELETE CATEGORY
-
+    // Delete category
     @DeleteMapping("/category/{categoryId}")
     public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable String categoryId) {
         productService.deleteCategory(categoryId);

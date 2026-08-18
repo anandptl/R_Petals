@@ -29,11 +29,4 @@ public class StoresController {
                 )
         );
     }
-
-    @PostMapping("/register")
-    public ResponseEntity<ApiResponse<StoresResponse>> registerShop(@Valid @RequestBody StoresRegistrationRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Shop registration request submitted successfully",
-                        storesService.registerShop(request)));
-    }
 }

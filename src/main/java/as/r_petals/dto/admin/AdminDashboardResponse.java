@@ -2,7 +2,7 @@ package as.r_petals.dto.admin;
 
 public class AdminDashboardResponse {
 
-    private long totalShops;
+    private long totalStores;
     private long totalProducts;
     private long totalOrders;
 
@@ -10,21 +10,21 @@ public class AdminDashboardResponse {
     }
 
     public AdminDashboardResponse(
-            long totalShops,
+            long totalStores,
             long totalProducts,
             long totalOrders
     ) {
-        this.totalShops = totalShops;
+        this.totalStores = totalStores;
         this.totalProducts = totalProducts;
         this.totalOrders = totalOrders;
     }
 
-    public long getTotalShops() {
-        return totalShops;
+    public long getTotalStores() {
+        return totalStores;
     }
 
-    public void setTotalShops(long totalShops) {
-        this.totalShops = totalShops;
+    public void setTotalStores(long totalStores) {
+        this.totalStores = totalStores;
     }
 
     public long getTotalProducts() {

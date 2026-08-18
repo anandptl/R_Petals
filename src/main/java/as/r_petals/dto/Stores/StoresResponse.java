@@ -5,8 +5,10 @@ import as.r_petals.entities.Stores;
 import java.time.LocalDateTime;
 
 public class StoresResponse {
+
     private String id;
     private String shopName;
+    private String country;
     private String address;
     private String city;
     private String state;
@@ -23,6 +25,7 @@ public class StoresResponse {
     public StoresResponse(Stores store) {
         id = store.getId();
         shopName = store.getShopName();
+        country = store.getCountry();
         address = store.getAddress();
         city = store.getCity();
         state = store.getState();
@@ -38,7 +41,13 @@ public class StoresResponse {
         return id;
     }
 
-    public String getShopName() {return shopName;}
+    public String getShopName() {
+        return shopName;
+    }
+
+    public String getCountry() {
+        return country;
+    }
 
     public String getAddress() {
         return address;
