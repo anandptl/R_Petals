@@ -2,8 +2,7 @@ package as.r_petals.service;
 
 import as.r_petals.dto.Stores.StoresResponse;
 import as.r_petals.dto.admin.AdminDashboardResponse;
-import as.r_petals.dto.admin.AdminShopDetailResponse;
-import as.r_petals.dto.admin.StoreStatusResponse;
+import as.r_petals.dto.admin.AdminStoreResponse;
 import as.r_petals.entities.Stores;
 import as.r_petals.entities.Users;
 import as.r_petals.enums.Role;
@@ -131,87 +130,40 @@ public class AdminService {
         return new StoresResponse(savedShop);
     }
 
-
-    //    shop the table admin dashbord....
-    public List<StoreStatusResponse> getStoreStatus() {
+    public List<AdminStoreResponse> getAllStores() {
 
         List<Stores> stores = storesRepository.findAll();
-        List<StoreStatusResponse> response = new ArrayList<>();
+        List<AdminStoreResponse> response = new ArrayList<>();
 
         for (Stores store : stores) {
 
-            Users user = userRepository.findById(store.getUserId()).orElse(null);
-            StoreStatusResponse item = new StoreStatusResponse();
-            item.setStoreId(store.getId());
-            item.setShopName(store.getShopName());
+            Users user = store.getUserId() == null ? null : userRepository.findById(store.getUserId()).orElse(null);
 
-            if (user != null) {
-                item.setUserName(user.getFullName());
-                item.setMobileNumber(user.getMobileNumber());
-            }
-            item.setTodayActive(store.isTodayActive());
-            item.setLastActiveAt(store.getLastActiveAt());
+            AdminStoreResponse item = new AdminStoreResponse(
+                            store.getId(),
+                            store.getShopName(),
+                            store.getCountry(),
+                            store.getAddress(),
+                            store.getCity(),
+                            store.getState(),
+                            store.getPincode(),
+                            store.getLatitude(),
+                            store.getLongitude(),
+
+                            user != null ? user.getFullName() : null,
+                            user != null ? user.getMobileNumber() : null,
+                            user != null ? user.getEmail() : null, user != null && user.isActive(),
+
+                            store.isTodayActive(),
+                            store.getLastActiveAt(),
+                            store.getCreatedAt(),
+                            store.getUpdatedAt()
+                    );
 
             response.add(item);
         }
 
-        response.sort(
-                Comparator.comparing(StoreStatusResponse::isTodayActive).reversed()
-        );
-
-        return response;
-    }
-
-    public List<AdminShopDetailResponse> getAllStores() {
-
-        List<Stores> stores =
-                storesRepository.findAll();
-
-        List<AdminShopDetailResponse> response =
-                new ArrayList<>();
-
-        for (Stores store : stores) {
-
-            StoresResponse shopResponse =
-                    new StoresResponse(store);
-
-            AdminShopDetailResponse.UserInfo userInfo =
-                    null;
-
-            if (store.getUserId() != null) {
-
-                Users user =
-                        userRepository
-                                .findById(store.getUserId())
-                                .orElse(null);
-
-                if (user != null) {
-
-                    userInfo =
-                            new AdminShopDetailResponse.UserInfo(
-                                    user.getId(),
-                                    user.getFullName(),
-                                    user.getMobileNumber(),
-                                    user.getEmail(),
-                                    user.isVerified(),
-                                    user.isEmailVerified(),
-                                    user.getRole() != null
-                                            ? user.getRole().name()
-                                            : null,
-                                    user.isActive()
-                            );
-                }
-            }
-
-            response.add(
-                    new AdminShopDetailResponse(
-                            shopResponse,
-                            userInfo,
-                            new ArrayList<>()
-                    )
-            );
-        }
-
+        response.sort(Comparator.comparing(AdminStoreResponse::isTodayActive).reversed());
         return response;
     }
 }

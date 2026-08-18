@@ -60,12 +60,6 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success("All shops fetched successfully", storesService.getAllShopsForAdmin()));
     }
 
-//    store status....
-    @GetMapping("/stores/status")
-    public ResponseEntity<?> getStoreStatus() {
-        return ResponseEntity.ok(adminService.getStoreStatus());
-    }
-
     // Register shop
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<StoresResponse>> registerShop(@Valid @RequestBody AdminStoresRegistrationRequest request) {
