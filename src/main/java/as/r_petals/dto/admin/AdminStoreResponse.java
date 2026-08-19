@@ -5,37 +5,21 @@ import java.time.LocalDateTime;
 public class AdminStoreResponse {
 
     private String id;
-
     private String shopName;
-
     private String country;
-
     private String address;
-
     private String city;
-
     private String state;
-
     private String pincode;
-
     private String latitude;
-
     private String longitude;
-
     private String userName;
-
     private String mobileNumber;
-
     private String email;
-
     private boolean userActive;
-
     private boolean todayActive;
-
     private LocalDateTime lastActiveAt;
-
     private LocalDateTime createdAt;
-
     private LocalDateTime updatedAt;
 
     public AdminStoreResponse() {

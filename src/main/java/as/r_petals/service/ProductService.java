@@ -1,9 +1,11 @@
 package as.r_petals.service;
 
 import as.r_petals.dto.FullProductRequest;
+import as.r_petals.dto.category.CategoryResponse;
 import as.r_petals.dto.product.ProductImageResponse;
 import as.r_petals.dto.product.ProductResponse;
 import as.r_petals.dto.product.ProductUpdateRequest;
+import as.r_petals.dto.subcategory.SubCategoryResponse;
 import as.r_petals.entities.Category;
 import as.r_petals.entities.Product;
 import as.r_petals.entities.ProductImage;
@@ -204,5 +206,123 @@ public class ProductService {
                         image.isPrimary())).toList();
         response.setImages(imageResponses);
         return response;
+    }
+
+    //    Category by product count.....show the admin page
+    public List<CategoryResponse> getCategoriesWithProductCount() {
+
+        List<Category> categories = categoryRepository.findAll();
+        List<CategoryResponse> response = new ArrayList<>();
+
+        for (Category category : categories) {
+            CategoryResponse categoryResponse = new CategoryResponse(category);
+
+            // GET SUBCATEGORIES OF THIS CATEGORY
+            List<SubCategory> subCategories = subCategoryRepository.findByCategoryId( category.getId() );
+
+            // ADD SUBCATEGORIES TO RESPONSE
+            List<SubCategoryResponse> subCategoryResponses = subCategories.stream() .map(SubCategoryResponse::new) .collect(Collectors.toList());
+            categoryResponse.setSubCategories( subCategoryResponses );
+
+            // COUNT PRODUCTS
+            long productCount = 0;
+
+            for (SubCategory subCategory : subCategories) {
+                productCount +=  productRepository.countBySubCategoryId( subCategory.getId());
+            }
+            categoryResponse.setProductCount( productCount);
+            response.add(categoryResponse);
+        }
+        return response;
+    }
+
+// GET ALL PRODUCTS FOR ADMIN
+
+    public List<ProductResponse> getAllProducts() {
+
+        List<Product> products = productRepository.findAll();
+
+        List<ProductResponse> responses = new ArrayList<>();
+
+        for (Product product : products) {
+
+            List<ProductImage> images = productImageRepository.findByProductIdOrderByDisplayOrderAsc(product.getId());
+
+            ProductResponse response = buildResponse( product, images);
+
+            SubCategory subCategory = subCategoryRepository.findById( product.getSubCategoryId() ).orElse(null);
+
+            if (subCategory != null) {
+                response.setSubCategoryName( subCategory.getSubCategoryName() );
+                Category category = categoryRepository.findById( subCategory.getCategoryId() ).orElse(null);
+
+                if (category != null) {response.setCategoryName( category.getCategoryName() );}
+            }
+            responses.add(response);
+        }
+        return responses;
+    }
+
+    // GET SINGLE PRODUCT FOR ADMIN UPDATE PAGE
+
+    public ProductResponse getProductById(String productId) {
+
+        Product product = productRepository.findById(productId).orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+        // Product images
+        List<ProductImage> images = productImageRepository.findByProductIdOrderByDisplayOrderAsc(productId);
+
+        ProductResponse response = buildResponse(product, images);
+        // Get SubCategory
+        SubCategory subCategory = subCategoryRepository.findById(product.getSubCategoryId()).orElse(null);
+
+
+        if (subCategory != null) {
+            response.setSubCategoryName(subCategory.getSubCategoryName());
+            // Get Category
+            Category category = categoryRepository.findById(subCategory.getCategoryId()).orElse(null);
+            if (category != null) {response.setCategoryName(category.getCategoryName());}
+        }
+        return response;
+    }
+
+    public ProductResponse updateProductImages(String productId, List<MultipartFile> images) {
+        Product product = productRepository.findById(productId).orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+        if (images == null || images.isEmpty()) {
+            throw new IllegalArgumentException("At least one product image is required");
+        }
+
+        if (images.size() > 6) {
+            throw new IllegalArgumentException("Maximum 6 product images are allowed");
+        }
+
+        productImageRepository.deleteByProductId(productId);
+
+        List<ProductImage> savedImages = new ArrayList<>();
+
+        try {
+            for (int i = 0; i < images.size(); i++) {
+                MultipartFile image = images.get(i);
+
+                String imageUrl = imageUploadService.upload(image,"r_petals/products/" + productId);
+
+                ProductImage productImage = new ProductImage();
+                productImage.setProductId(productId);
+                productImage.setImageUrl(imageUrl);
+                productImage.setDisplayOrder(i + 1);
+                productImage.setPrimary(i == 0);
+
+                savedImages.add(productImage);
+            }
+
+            productImageRepository.saveAll(savedImages);
+        } catch (Exception e) {
+            throw new RuntimeException( "Product image update failed", e);
+        }
+
+        product.setUpdatedAt(LocalDateTime.now());
+        Product savedProduct = productRepository.save(product);
+
+        return buildResponse( savedProduct, savedImages);
     }
 }

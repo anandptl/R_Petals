@@ -7,7 +7,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ProductRepository extends MongoRepository<Product, String> {
 
-    boolean existsBySubCategoryIdAndProductNameIgnoreCase(String subcategoryId, String name);
+    boolean existsBySubCategoryIdAndProductNameIgnoreCase( String subcategoryId,   String name);
 
-    boolean existsBySubCategoryId(String subCategoryId);
+    boolean existsBySubCategoryId(String subCategoryId );
+
+    long countBySubCategoryId( String subCategoryId );
 }

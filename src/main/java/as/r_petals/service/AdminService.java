@@ -137,33 +137,35 @@ public class AdminService {
 
         for (Stores store : stores) {
 
-            Users user = store.getUserId() == null ? null : userRepository.findById(store.getUserId()).orElse(null);
+            Users user = store.getUserId() == null
+                    ? null
+                    : userRepository.findById(store.getUserId()).orElse(null);
 
             AdminStoreResponse item = new AdminStoreResponse(
-                            store.getId(),
-                            store.getShopName(),
-                            store.getCountry(),
-                            store.getAddress(),
-                            store.getCity(),
-                            store.getState(),
-                            store.getPincode(),
-                            store.getLatitude(),
-                            store.getLongitude(),
+                    store.getId(),
+                    store.getShopName(),
+                    store.getCountry(),
+                    store.getAddress(),
+                    store.getCity(),
+                    store.getState(),
+                    store.getPincode(),
+                    store.getLatitude(),
+                    store.getLongitude(),
 
-                            user != null ? user.getFullName() : null,
-                            user != null ? user.getMobileNumber() : null,
-                            user != null ? user.getEmail() : null, user != null && user.isActive(),
+                    user != null ? user.getFullName() : null,
+                    user != null ? user.getMobileNumber() : null,
+                    user != null ? user.getEmail() : null,
+                    user != null && user.isActive(),
 
-                            store.isTodayActive(),
-                            store.getLastActiveAt(),
-                            store.getCreatedAt(),
-                            store.getUpdatedAt()
-                    );
+                    store.isTodayActive(),
+                    store.getLastActiveAt(),
+                    store.getCreatedAt(),
+                    store.getUpdatedAt()
+            );
 
             response.add(item);
         }
-
-        response.sort(Comparator.comparing(AdminStoreResponse::isTodayActive).reversed());
+        response.sort(Comparator .comparing(AdminStoreResponse::isTodayActive).reversed());
         return response;
     }
 }
