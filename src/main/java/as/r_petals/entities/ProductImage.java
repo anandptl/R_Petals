@@ -13,6 +13,10 @@ public class ProductImage {
 
     private String imageUrl;
 
+    // Cloudinary public id used for replace/delete.
+    // Existing records may have this field null; the service derives it from imageUrl.
+    private String publicId;
+
     private Integer displayOrder;
 
     private boolean primary;
@@ -42,6 +46,14 @@ public class ProductImage {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public String getPublicId() {
+        return publicId;
+    }
+
+    public void setPublicId(String publicId) {
+        this.publicId = publicId;
     }
 
     public Integer getDisplayOrder() {

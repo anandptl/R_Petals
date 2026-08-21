@@ -106,14 +106,46 @@ public class AdminController {
         );
     }
 
-    @PutMapping(value = "/update/{productId}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<ProductResponse>> updateProductImages(
+    // Add one or more images. Total images cannot exceed 6.
+    @PostMapping(value = "/update/{productId}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<ProductResponse>> addProductImages(
             @PathVariable String productId,
             @RequestPart("images") List<MultipartFile> images
     ) {
-        ProductResponse response = productService.updateProductImages(productId, images);
         return ResponseEntity.ok(
-                ApiResponse.success("Product images updated successfully", response)
+                ApiResponse.success(
+                        "Product images added successfully",
+                        productService.addProductImages(productId, images)
+                )
+        );
+    }
+
+    // Replace one particular image.
+    @PutMapping(value = "/update/{productId}/images/{imageId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<ProductResponse>> replaceProductImage(
+            @PathVariable String productId,
+            @PathVariable String imageId,
+            @RequestPart("image") MultipartFile image
+    ) {
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Product image replaced successfully",
+                        productService.replaceProductImage(productId, imageId, image)
+                )
+        );
+    }
+
+    // Delete one particular image. A product must keep at least one image.
+    @DeleteMapping("/update/{productId}/images/{imageId}")
+    public ResponseEntity<ApiResponse<ProductResponse>> deleteProductImage(
+            @PathVariable String productId,
+            @PathVariable String imageId
+    ) {
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Product image deleted successfully",
+                        productService.deleteProductImage(productId, imageId)
+                )
         );
     }
 

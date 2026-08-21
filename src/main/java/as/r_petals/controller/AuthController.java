@@ -9,6 +9,7 @@ import as.r_petals.service.AuthService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import as.r_petals.exception.BadRequestException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -58,14 +59,33 @@ public class AuthController {
             @CookieValue(value = REFRESH_COOKIE_NAME, required = false) String refreshToken,
             HttpServletResponse response) {
 
-        RefreshResult result = authService.refresh(refreshToken);
+        try {
+            RefreshResult result = authService.refresh(refreshToken);
 
-        // Rotation: replace old refresh cookie with the new one.
-        addRefreshCookie(response, result.getRefreshToken(), result.getRefreshTokenMaxAgeSeconds());
+            // Rotation: replace old refresh cookie with the new one.
+            addRefreshCookie(response, result.getRefreshToken(), result.getRefreshTokenMaxAgeSeconds());
 
-        return ResponseEntity.ok(
-                ApiResponse.success("Token refreshed successfully", result.getLoginResponse())
-        );
+            return ResponseEntity.ok(
+                    ApiResponse.success("Token refreshed successfully", result.getLoginResponse())
+            );
+        } catch (BadRequestException ex) {
+            // A stale/invalid refresh cookie must not be kept in the browser.
+            clearRefreshCookie(response);
+            return ResponseEntity.status(401)
+                    .body(ApiResponse.error(ex.getMessage()));
+        }
+    }
+
+    private void clearRefreshCookie(HttpServletResponse response) {
+        ResponseCookie cookie = ResponseCookie.from(REFRESH_COOKIE_NAME, "")
+                .httpOnly(true)
+                .secure(secureCookie)
+                .sameSite(sameSite)
+                .path("/")
+                .maxAge(0)
+                .build();
+
+        response.addHeader("Set-Cookie", cookie.toString());
     }
 
     private void addRefreshCookie(

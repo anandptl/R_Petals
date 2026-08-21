@@ -5,6 +5,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Document(collection = "products")
 public class Product {
@@ -19,6 +20,10 @@ public class Product {
     private String description;
 
     private BigDecimal price;
+
+    private List<String> occasionIds;
+
+    private List<String> feelingIds;
 
     private boolean active = true;
 
@@ -68,6 +73,14 @@ public class Product {
 
     public void setPrice(BigDecimal price) {this.price = price;}
 
+    public List<String> getOccasionIds() {
+        return occasionIds;
+    }
+
+    public void setOccasionIds(List<String> occasionIds) {
+        this.occasionIds = occasionIds;
+    }
+
     public boolean isActive() {
         return active;
     }
@@ -90,5 +103,13 @@ public class Product {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public List<String> getFeelingIds() {
+        return feelingIds;
+    }
+
+    public void setFeelingIds(List<String> feelingIds) {
+        this.feelingIds = feelingIds;
     }
 }

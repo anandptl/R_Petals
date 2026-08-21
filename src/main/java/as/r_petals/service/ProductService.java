@@ -20,10 +20,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.stream.Collectors;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductService {
@@ -39,10 +39,7 @@ public class ProductService {
     @Autowired
     private ImageUploadService imageUploadService;
 
-    // CREATE PRODUCT + MULTIPLE IMAGES
-
     public ProductResponse createFullProduct(FullProductRequest request, List<MultipartFile> images) {
-
         if (images == null || images.isEmpty()) {
             throw new IllegalArgumentException("At least one product image is required");
         }
@@ -52,15 +49,10 @@ public class ProductService {
         }
 
         String categoryName = request.getCategoryName().trim();
-
         String subCategoryName = request.getSubCategoryName().trim();
-
         String productName = request.getProductName().trim();
 
-        // CATEGORY
-
         Category category = categoryRepository.findByCategoryNameIgnoreCase(categoryName).orElseGet(() -> {
-
             Category c = new Category();
             c.setCategoryName(categoryName);
             c.setActive(true);
@@ -69,10 +61,7 @@ public class ProductService {
             return categoryRepository.save(c);
         });
 
-        // SUBCATEGORY
-
         SubCategory subCategory = subCategoryRepository.findByCategoryIdAndSubCategoryNameIgnoreCase(category.getId(), subCategoryName).orElseGet(() -> {
-
             SubCategory s = new SubCategory();
             s.setCategoryId(category.getId());
             s.setSubCategoryName(subCategoryName);
@@ -82,14 +71,9 @@ public class ProductService {
             return subCategoryRepository.save(s);
         });
 
-
-        // DUPLICATE PRODUCT
-
         if (productRepository.existsBySubCategoryIdAndProductNameIgnoreCase(subCategory.getId(), productName)) {
             throw new ConflictException("Product already exists in this subcategory");
         }
-
-        // CREATE PRODUCT
 
         Product product = new Product();
         product.setSubCategoryId(subCategory.getId());
@@ -101,20 +85,20 @@ public class ProductService {
         product.setUpdatedAt(LocalDateTime.now());
 
         Product savedProduct = productRepository.save(product);
-
-        // UPLOAD ALL IMAGES
-
         List<ProductImage> savedImages = new ArrayList<>();
 
         try {
-
             for (int i = 0; i < images.size(); i++) {
-
                 MultipartFile image = images.get(i);
-                String imageUrl = imageUploadService.upload(image, "r_petals/products/" + savedProduct.getId());
+                ImageUploadService.UploadResult upload = imageUploadService.uploadWithDetails(
+                        image,
+                        "r_petals/products/" + savedProduct.getId()
+                );
+
                 ProductImage productImage = new ProductImage();
                 productImage.setProductId(savedProduct.getId());
-                productImage.setImageUrl(imageUrl);
+                productImage.setImageUrl(upload.url());
+                productImage.setPublicId(upload.publicId());
                 productImage.setDisplayOrder(i + 1);
                 productImage.setPrimary(i == 0);
 
@@ -122,10 +106,8 @@ public class ProductService {
             }
 
             productImageRepository.saveAll(savedImages);
-
         } catch (Exception e) {
             productRepository.delete(savedProduct);
-
             throw new RuntimeException("Product image upload failed", e);
         }
 
@@ -137,65 +119,78 @@ public class ProductService {
     public ProductResponse updateProduct(String productId, ProductUpdateRequest request) {
 
         Product product = productRepository.findById(productId).orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
         if (request.getProductName() != null) {
             product.setProductName(request.getProductName().trim());
         }
+
         if (request.getDescription() != null) {
             product.setDescription(request.getDescription());
         }
+
         if (request.getPrice() != null) {
             product.setPrice(request.getPrice());
         }
+
         if (request.getActive() != null) {
-            product.setActive(request.getActive());
+            product.setActive(request.getActive() );
         }
 
         product.setUpdatedAt(LocalDateTime.now());
         Product saved = productRepository.save(product);
 
-        List<ProductImage> images = productImageRepository.findByProductIdOrderByDisplayOrderAsc(productId);
-        return buildResponse(saved, images);
+        List<ProductImage> images = productImageRepository.findByProductIdOrderByDisplayOrderAsc(productId );
+
+        // IMPORTANT:
+        // category + subcategory bhi response mein bhejna
+        return buildFullProductResponse(
+                saved,
+                images
+        );
     }
 
-    // DELETE PRODUCT
-
+//    delete product by id
     public void deleteProduct(String productId) {
-
         Product product = productRepository.findById(productId).orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+        List<ProductImage> images = productImageRepository.findByProductIdOrderByDisplayOrderAsc(productId);
+
+        for (ProductImage image : images) {
+            String publicId = resolvePublicId(image);
+            if (publicId != null) {
+                imageUploadService.deleteByPublicId(publicId);
+            }
+        }
+
         productImageRepository.deleteByProductId(productId);
         productRepository.delete(product);
     }
 
-    // DELETE SUBCATEGORY
-
+//    delete SubCategory by id
     public void deleteSubCategory(String subCategoryId) {
-
         if (productRepository.existsBySubCategoryId(subCategoryId)) {
             throw new ConflictException("Subcategory contains products");
         }
 
-        SubCategory subCategory = subCategoryRepository.findById(subCategoryId).orElseThrow(() -> new ResourceNotFoundException("Subcategory not found"));
+        SubCategory subCategory = subCategoryRepository.findById(subCategoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Subcategory not found"));
 
         subCategoryRepository.delete(subCategory);
     }
 
-    // DELETE CATEGORY
-
+//    delete category by id
     public void deleteCategory(String categoryId) {
-
         if (subCategoryRepository.existsByCategoryId(categoryId)) {
             throw new ConflictException("Category contains subcategories");
         }
 
-        Category category = categoryRepository.findById(categoryId).orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
         categoryRepository.delete(category);
     }
 
-    // RESPONSE BUILDER
-
     private ProductResponse buildResponse(Product product, List<ProductImage> images) {
-
         ProductResponse response = new ProductResponse(product);
         List<ProductImageResponse> imageResponses = images.stream().map(
                 image -> new ProductImageResponse(
@@ -203,91 +198,208 @@ public class ProductService {
                         image.getProductId(),
                         image.getImageUrl(),
                         image.getDisplayOrder(),
-                        image.isPrimary())).toList();
+                        image.isPrimary()
+                )
+        ).toList();
         response.setImages(imageResponses);
         return response;
     }
 
-    //    Category by product count.....show the admin page
     public List<CategoryResponse> getCategoriesWithProductCount() {
-
         List<Category> categories = categoryRepository.findAll();
         List<CategoryResponse> response = new ArrayList<>();
 
         for (Category category : categories) {
             CategoryResponse categoryResponse = new CategoryResponse(category);
 
-            // GET SUBCATEGORIES OF THIS CATEGORY
-            List<SubCategory> subCategories = subCategoryRepository.findByCategoryId( category.getId() );
+            List<SubCategory> subCategories = subCategoryRepository.findByCategoryId(category.getId());
+            List<SubCategoryResponse> subCategoryResponses = subCategories.stream()
+                    .map(SubCategoryResponse::new)
+                    .collect(Collectors.toList());
+            categoryResponse.setSubCategories(subCategoryResponses);
 
-            // ADD SUBCATEGORIES TO RESPONSE
-            List<SubCategoryResponse> subCategoryResponses = subCategories.stream() .map(SubCategoryResponse::new) .collect(Collectors.toList());
-            categoryResponse.setSubCategories( subCategoryResponses );
-
-            // COUNT PRODUCTS
             long productCount = 0;
-
             for (SubCategory subCategory : subCategories) {
-                productCount +=  productRepository.countBySubCategoryId( subCategory.getId());
+                productCount += productRepository.countBySubCategoryId(subCategory.getId());
             }
-            categoryResponse.setProductCount( productCount);
+
+            categoryResponse.setProductCount(productCount);
             response.add(categoryResponse);
         }
         return response;
     }
 
-// GET ALL PRODUCTS FOR ADMIN
-
     public List<ProductResponse> getAllProducts() {
-
         List<Product> products = productRepository.findAll();
-
         List<ProductResponse> responses = new ArrayList<>();
 
         for (Product product : products) {
-
             List<ProductImage> images = productImageRepository.findByProductIdOrderByDisplayOrderAsc(product.getId());
+            ProductResponse response = buildResponse(product, images);
 
-            ProductResponse response = buildResponse( product, images);
-
-            SubCategory subCategory = subCategoryRepository.findById( product.getSubCategoryId() ).orElse(null);
-
+            SubCategory subCategory = subCategoryRepository.findById(product.getSubCategoryId()).orElse(null);
             if (subCategory != null) {
-                response.setSubCategoryName( subCategory.getSubCategoryName() );
-                Category category = categoryRepository.findById( subCategory.getCategoryId() ).orElse(null);
-
-                if (category != null) {response.setCategoryName( category.getCategoryName() );}
+                response.setSubCategoryName(subCategory.getSubCategoryName());
+                Category category = categoryRepository.findById(subCategory.getCategoryId()).orElse(null);
+                if (category != null) {
+                    response.setCategoryName(category.getCategoryName());
+                }
             }
             responses.add(response);
         }
         return responses;
     }
 
-    // GET SINGLE PRODUCT FOR ADMIN UPDATE PAGE
-
     public ProductResponse getProductById(String productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
-        Product product = productRepository.findById(productId).orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-        // Product images
         List<ProductImage> images = productImageRepository.findByProductIdOrderByDisplayOrderAsc(productId);
-
         ProductResponse response = buildResponse(product, images);
-        // Get SubCategory
+
         SubCategory subCategory = subCategoryRepository.findById(product.getSubCategoryId()).orElse(null);
-
-
         if (subCategory != null) {
             response.setSubCategoryName(subCategory.getSubCategoryName());
-            // Get Category
             Category category = categoryRepository.findById(subCategory.getCategoryId()).orElse(null);
-            if (category != null) {response.setCategoryName(category.getCategoryName());}
+            if (category != null) {
+                response.setCategoryName(category.getCategoryName());
+            }
         }
         return response;
     }
 
-    public ProductResponse updateProductImages(String productId, List<MultipartFile> images) {
-        Product product = productRepository.findById(productId).orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+    public ProductResponse addProductImages(String productId, List<MultipartFile> images) {
+        productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
+        validateImages(images);
+
+        List<ProductImage> currentImages = productImageRepository.findByProductIdOrderByDisplayOrderAsc(productId);
+
+        if (currentImages.size() + images.size() > 6) {
+            throw new IllegalArgumentException(
+                    "A product can have maximum 6 images. You can add only "
+                            + (6 - currentImages.size()) + " more image(s)."
+            );
+        }
+
+        List<ProductImage> newImages = new ArrayList<>();
+        int nextOrder = currentImages.size() + 1;
+
+        try {
+            for (MultipartFile image : images) {
+                ImageUploadService.UploadResult upload = imageUploadService.uploadWithDetails(
+                        image,
+                        "r_petals/products/" + productId
+                );
+
+                ProductImage productImage = new ProductImage();
+                productImage.setProductId(productId);
+                productImage.setImageUrl(upload.url());
+                productImage.setPublicId(upload.publicId());
+                productImage.setDisplayOrder(nextOrder++);
+                productImage.setPrimary(false);
+
+                newImages.add(productImage);
+            }
+
+            productImageRepository.saveAll(newImages);
+        } catch (Exception e) {
+            for (ProductImage image : newImages) {
+                try {
+                    imageUploadService.deleteByPublicId(image.getPublicId());
+                } catch (Exception ignored) {
+                }
+            }
+            throw new RuntimeException("Product image add failed", e);
+        }
+
+        return getProductById(productId);
+    }
+
+    public ProductResponse replaceProductImage(String productId, String imageId, MultipartFile image) {
+        productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+        validateImages(List.of(image));
+
+        ProductImage oldImage = productImageRepository.findById(imageId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product image not found"));
+
+        if (!productId.equals(oldImage.getProductId())) {
+            throw new ResourceNotFoundException("Product image not found");
+        }
+
+        ImageUploadService.UploadResult upload = imageUploadService.uploadWithDetails(
+                image,
+                "r_petals/products/" + productId
+        );
+
+        String oldPublicId = resolvePublicId(oldImage);
+
+        try {
+            oldImage.setImageUrl(upload.url());
+            oldImage.setPublicId(upload.publicId());
+            productImageRepository.save(oldImage);
+        } catch (Exception e) {
+            try {
+                imageUploadService.deleteByPublicId(upload.publicId());
+            } catch (Exception ignored) {
+            }
+            throw new RuntimeException("Product image replace failed", e);
+        }
+
+        if (oldPublicId != null && !oldPublicId.equals(upload.publicId())) {
+            try {
+                imageUploadService.deleteByPublicId(oldPublicId);
+            } catch (Exception e) {
+                System.err.println("Could not delete old Cloudinary image: " + e.getMessage());
+            }
+        }
+
+        return getProductById(productId);
+    }
+
+    public ProductResponse deleteProductImage(String productId, String imageId) {
+        productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+        ProductImage image = productImageRepository.findById(imageId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product image not found"));
+
+        if (!productId.equals(image.getProductId())) {
+            throw new ResourceNotFoundException("Product image not found");
+        }
+
+        List<ProductImage> currentImages = productImageRepository.findByProductIdOrderByDisplayOrderAsc(productId);
+
+        if (currentImages.size() <= 1) {
+            throw new ConflictException("Product must have at least one image");
+        }
+
+        String publicId = resolvePublicId(image);
+        if (publicId != null) {
+            imageUploadService.deleteByPublicId(publicId);
+        }
+
+        productImageRepository.delete(image);
+
+        List<ProductImage> remaining = productImageRepository.findByProductIdOrderByDisplayOrderAsc(productId);
+
+        for (int i = 0; i < remaining.size(); i++) {
+            remaining.get(i).setDisplayOrder(i + 1);
+        }
+
+        boolean hasPrimary = remaining.stream().anyMatch(ProductImage::isPrimary);
+        if (!hasPrimary && !remaining.isEmpty()) {
+            remaining.get(0).setPrimary(true);
+        }
+
+        productImageRepository.saveAll(remaining);
+        return getProductById(productId);
+    }
+
+    private void validateImages(List<MultipartFile> images) {
         if (images == null || images.isEmpty()) {
             throw new IllegalArgumentException("At least one product image is required");
         }
@@ -296,33 +408,88 @@ public class ProductService {
             throw new IllegalArgumentException("Maximum 6 product images are allowed");
         }
 
-        productImageRepository.deleteByProductId(productId);
-
-        List<ProductImage> savedImages = new ArrayList<>();
-
-        try {
-            for (int i = 0; i < images.size(); i++) {
-                MultipartFile image = images.get(i);
-
-                String imageUrl = imageUploadService.upload(image,"r_petals/products/" + productId);
-
-                ProductImage productImage = new ProductImage();
-                productImage.setProductId(productId);
-                productImage.setImageUrl(imageUrl);
-                productImage.setDisplayOrder(i + 1);
-                productImage.setPrimary(i == 0);
-
-                savedImages.add(productImage);
+        for (MultipartFile image : images) {
+            if (image == null || image.isEmpty()) {
+                throw new IllegalArgumentException("Image file is required");
             }
 
-            productImageRepository.saveAll(savedImages);
-        } catch (Exception e) {
-            throw new RuntimeException( "Product image update failed", e);
+            String contentType = image.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                throw new IllegalArgumentException("Only image files are allowed");
+            }
+        }
+    }
+
+    private String resolvePublicId(ProductImage image) {
+        if (image.getPublicId() != null && !image.getPublicId().isBlank()) {
+            return image.getPublicId();
+        }
+        return extractCloudinaryPublicId(image.getImageUrl());
+    }
+
+    private String extractCloudinaryPublicId(String imageUrl) {
+        if (imageUrl == null || imageUrl.isBlank()) {
+            return null;
         }
 
-        product.setUpdatedAt(LocalDateTime.now());
-        Product savedProduct = productRepository.save(product);
+        try {
+            int uploadIndex = imageUrl.indexOf("/upload/");
+            if (uploadIndex < 0) {
+                return null;
+            }
 
-        return buildResponse( savedProduct, savedImages);
+            String path = imageUrl.substring(uploadIndex + "/upload/".length());
+            String[] parts = path.split("/");
+
+            int start = 0;
+            if (parts.length > 0 && parts[0].matches("v\\d+")) {
+                start = 1;
+            }
+
+            if (start >= parts.length) {
+                return null;
+            }
+
+            StringBuilder publicId = new StringBuilder();
+            for (int i = start; i < parts.length; i++) {
+                if (publicId.length() > 0) {
+                    publicId.append('/');
+                }
+                publicId.append(parts[i]);
+            }
+
+            int extensionIndex = publicId.lastIndexOf(".");
+            if (extensionIndex > 0) {
+                publicId.delete(extensionIndex, publicId.length());
+            }
+
+            return publicId.toString();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private ProductResponse buildFullProductResponse(Product product,List<ProductImage> images) {
+
+        ProductResponse response = buildResponse(product,images);
+        // SUBCATEGORY
+        SubCategory subCategory =subCategoryRepository.findById(product.getSubCategoryId()).orElse(null);
+
+
+        if (subCategory != null) {
+
+            response.setSubCategoryName(subCategory.getSubCategoryName());
+
+            // CATEGORY
+            Category category =categoryRepository.findById(subCategory.getCategoryId()).orElse(null);
+
+
+            if (category != null) {
+                response.setCategoryName( category.getCategoryName());
+            }
+        }
+
+        
+        return response;
     }
 }
