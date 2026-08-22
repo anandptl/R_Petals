@@ -1,29 +1,33 @@
-package as.r_petals.entities;
-
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
+package as.r_petals.dto.feelings;
 
 import java.time.LocalDateTime;
 
-@Document(collection = "feelings")
-public class Feeling {
+public class FeelingResponse {
 
-    @Id
     private String id;
-
     private String feelingName;
-
     private String feelingImage;
-
-    private String feelingImagePublicId;
-
-    private boolean active = true;
-
+    private boolean active;
     private LocalDateTime createdAt;
-
     private LocalDateTime updatedAt;
 
-    public Feeling() {
+    public FeelingResponse() {
+    }
+
+    public FeelingResponse(
+            String id,
+            String feelingName,
+            String feelingImage,
+            boolean active,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt
+    ) {
+        this.id = id;
+        this.feelingName = feelingName;
+        this.feelingImage = feelingImage;
+        this.active = active;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
     public String getId() {
@@ -49,10 +53,6 @@ public class Feeling {
     public void setFeelingImage(String feelingImage) {
         this.feelingImage = feelingImage;
     }
-
-    public String getfeelingImagePublicId(){return feelingImagePublicId;}
-
-    public void setFeelingImagePublicId(String feelingImagePublicId){this.feelingImagePublicId = feelingImagePublicId;}
 
     public boolean isActive() {
         return active;

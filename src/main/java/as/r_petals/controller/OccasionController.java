@@ -1,5 +1,6 @@
 package as.r_petals.controller;
 
+import as.r_petals.dto.occasions.OccasionStatsResponse;
 import as.r_petals.entities.Occasion;
 import as.r_petals.service.OccasionService;
 
@@ -27,7 +28,7 @@ public class OccasionController {
 
             @RequestParam("occasionName")
             String occasionName,
-            @RequestParam("occasionDate")
+            @RequestParam(value = "occasionDate", required = false)
             String occasionDate,
             @RequestParam("active")
             boolean active,
@@ -37,7 +38,10 @@ public class OccasionController {
     ) {
 
         try {
-            LocalDateTime date = LocalDateTime.parse(occasionDate);
+            LocalDateTime date = null;
+            if (occasionDate != null && !occasionDate.isBlank()) {
+                date = LocalDateTime.parse(occasionDate);
+            }
             Occasion occasion = occasionService.createOccasion(occasionName, date, active, image);
 
             return ResponseEntity.ok(occasion);
@@ -48,12 +52,59 @@ public class OccasionController {
         }
     }
 
-//    occasion visible
+    //    occasion visible
     @GetMapping("/visible")
     public ResponseEntity<List<Occasion>> getVisibleOccasions() {
-
         return ResponseEntity.ok(
                 occasionService.getVisibleOccasions()
         );
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<OccasionStatsResponse> getOccasionStats() {
+        return ResponseEntity.ok(occasionService.getOccasionStats());
+    }
+
+    //Admin - get all occasiuon
+    @GetMapping("/all")
+    public ResponseEntity<List<Occasion>> getAllOccasions() {
+        return ResponseEntity.ok(occasionService.getAllOccasions());
+    }
+
+    //    admin update occasion details..
+    @PutMapping(value = "/{id}", consumes = "multipart/form-data")
+    public ResponseEntity<?> updateOccasion(@PathVariable String id, @RequestParam("occasionName")
+                                            String occasionName,
+                                            @RequestParam(value = "occasionDate", required = false)
+                                            String occasionDate,
+                                            @RequestParam("active")
+                                                boolean active,
+                                            @RequestParam(value = "image", required = false)
+                                            MultipartFile image) {
+
+        try {
+
+            LocalDateTime date = null;
+            if (occasionDate != null && !occasionDate.isBlank()) {
+                date = LocalDateTime.parse(occasionDate);
+            }
+            Occasion updated = occasionService.updateOccasion(id, occasionName, date, active, image);
+
+            return ResponseEntity.ok(updated);
+
+        } catch (Exception e) {
+
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteOccasion(@PathVariable String id) {
+        try {
+            occasionService.deleteOccasion(id);
+            return ResponseEntity.ok(Map.of("message", "Occasion deleted successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 }

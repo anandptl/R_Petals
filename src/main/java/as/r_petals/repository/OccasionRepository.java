@@ -7,6 +7,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface OccasionRepository extends MongoRepository<Occasion, String> {
+    List<Occasion> findByActiveTrue();
+
+    long countByActiveTrue();
+
+    long countByOccasionDateGreaterThanEqual(LocalDateTime date);
 
     List<Occasion> findByActiveTrueAndOccasionDateBetween(
             LocalDateTime start,
